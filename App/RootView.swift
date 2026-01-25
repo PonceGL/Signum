@@ -53,13 +53,13 @@ struct RootView: View {
             }
         } else {
 
-            ContentUnavailableView(
-                "Selecciona una opción",
-                systemImage: "sidebar.left",
-                description: Text(
-                    "Elige una herramienta del menú para comenzar."
-                )
+            SignumEmptyStateView(
+                title: "No Items",
+                systemImage: "tray",
+                description:
+                    "There are no items to display right now. Add a new item to get started."
             )
+            .padding()
         }
     }
 
