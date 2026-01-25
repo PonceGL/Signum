@@ -58,7 +58,7 @@ struct WorkspaceSidebarView: View {
                 }
                 .padding()
             }
-            .background(Color(NSColor.windowBackgroundColor))
+            .background(Color.signumSecondaryBackground)
         }
     }
 }
