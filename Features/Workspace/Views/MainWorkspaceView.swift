@@ -25,8 +25,7 @@ struct MainWorkspaceView: View {
         } content: {
             // COLUMNA 2: Centro - Visor de PDF
             if let document = viewModel.selectedDocument {
-                // PDFPreviewView(document: document)
-                Text("PDF Preview View")
+                 PDFPreviewView(document: document)
             } else {
                 SignumEmptyStateView(
                     title: "Sin Selección",
@@ -56,21 +55,23 @@ struct MainWorkspaceView: View {
     MainWorkspaceView()
 }
 
-#Preview("Con Archivos Cargados") {
+#Preview("Con Archivo Seleccionado") {
     let vm = WorkspaceViewModel()
-    vm.addFiles(from: [
-        URL(fileURLWithPath: "Amparo_Directo_1.pdf"),
-        URL(fileURLWithPath: "Oficio_2.pdf"),
-        URL(fileURLWithPath: "Sentencia_3.pdf"),
-    ])
+    // Agregamos el mock a la lista
+    vm.documents = [.mock]
+    vm.selectedDocumentID = vm.documents.first?.id
+    
     return MainWorkspaceView(viewModel: vm)
 }
 
-#Preview("Procesando Lote") {
+#Preview("Procesando") {
     let vm = WorkspaceViewModel()
-    vm.addFiles(from: [URL(fileURLWithPath: "Escaneo_Masivo.pdf")])
+    var doc = LegalDocument.mock
+    doc.status = .analyzing
+    vm.documents = [doc]
     vm.isProcessing = true
-    vm.totalProgress = 0.45
+    vm.totalProgress = 0.5
+    
     return MainWorkspaceView(viewModel: vm)
 }
 

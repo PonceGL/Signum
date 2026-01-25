@@ -68,6 +68,11 @@
 			path = Core;
 			sourceTree = "<group>";
 		};
+		0CCE50542F26D55A00209998 /* Preview Content */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,6 +103,7 @@
 		0CCE4F512F24168100209998 = {
 			isa = PBXGroup;
 			children = (
+				0CCE50542F26D55A00209998 /* Preview Content */,
 				0CCE4F8E2F241F5700209998 /* App */,
 				0CCE4FF72F268A9900209998 /* Core */,
 				0CCE4F952F241FA700209998 /* Features */,
@@ -136,6 +142,7 @@
 				0CCE4F8E2F241F5700209998 /* App */,
 				0CCE4F952F241FA700209998 /* Features */,
 				0CCE4FF72F268A9900209998 /* Core */,
+				0CCE50542F26D55A00209998 /* Preview Content */,
 			);
 			name = Signum;
 			packageProductDependencies = (
@@ -333,6 +340,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_ASSET_PATHS = "\"$(SRCROOT)/Preview Content\"";
 				DEVELOPMENT_TEAM = BR957994MU;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -397,6 +405,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_ASSET_PATHS = "\"$(SRCROOT)/Preview Content\"";
 				DEVELOPMENT_TEAM = BR957994MU;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -424,6 +433,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"$(SRCROOT)/Preview Content\"";
 				DEVELOPMENT_TEAM = BR957994MU;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -474,6 +484,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"$(SRCROOT)/Preview Content\"";
 				DEVELOPMENT_TEAM = BR957994MU;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -655,6 +666,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_ASSET_PATHS = "\"$(SRCROOT)/Preview Content\"";
 				DEVELOPMENT_TEAM = BR957994MU;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -690,6 +702,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"$(SRCROOT)/Preview Content\"";
 				DEVELOPMENT_TEAM = BR957994MU;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -820,6 +833,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_ASSET_PATHS = "\"$(SRCROOT)/Preview Content\"";
 				DEVELOPMENT_TEAM = BR957994MU;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -847,6 +861,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"$(SRCROOT)/Preview Content\"";
 				DEVELOPMENT_TEAM = BR957994MU;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
