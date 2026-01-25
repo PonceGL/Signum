@@ -30,24 +30,16 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		0CCE4F9D2F24233800209998 /* Exceptions for "Signum" folder in "Signum" target */ = {
+		0CCE4FA12F26850F00209998 /* Exceptions for "App" folder in "Signum" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Info.plist,
+				Resources/Info.plist,
 			);
 			target = 0CCE4F592F24168100209998 /* Signum */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0CCE4F5C2F24168200209998 /* Signum */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				0CCE4F9D2F24233800209998 /* Exceptions for "Signum" folder in "Signum" target */,
-			);
-			path = Signum;
-			sourceTree = "<group>";
-		};
 		0CCE4F6A2F24168400209998 /* SignumTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = SignumTests;
@@ -60,6 +52,9 @@
 		};
 		0CCE4F8E2F241F5700209998 /* App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				0CCE4FA12F26850F00209998 /* Exceptions for "App" folder in "Signum" target */,
+			);
 			path = App;
 			sourceTree = "<group>";
 		};
@@ -106,7 +101,6 @@
 				0CCE4F952F241FA700209998 /* Features */,
 				0CCE4F912F241F8300209998 /* Core */,
 				0CCE4F8E2F241F5700209998 /* App */,
-				0CCE4F5C2F24168200209998 /* Signum */,
 				0CCE4F6A2F24168400209998 /* SignumTests */,
 				0CCE4F742F24168400209998 /* SignumUITests */,
 				0CCE4F5B2F24168200209998 /* Products */,
@@ -139,7 +133,6 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				0CCE4F5C2F24168200209998 /* Signum */,
 				0CCE4F8E2F241F5700209998 /* App */,
 				0CCE4F912F241F8300209998 /* Core */,
 				0CCE4F952F241FA700209998 /* Features */,
@@ -437,7 +430,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Signum/Info.plist;
+				INFOPLIST_FILE = App/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "$(APP_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -487,7 +480,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Signum/Info.plist;
+				INFOPLIST_FILE = App/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "$(APP_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -703,7 +696,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Signum/Info.plist;
+				INFOPLIST_FILE = App/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "$(APP_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -860,7 +853,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Signum/Info.plist;
+				INFOPLIST_FILE = App/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "$(APP_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
