@@ -58,14 +58,14 @@
 			path = App;
 			sourceTree = "<group>";
 		};
-		0CCE4F912F241F8300209998 /* Core */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Core;
-			sourceTree = "<group>";
-		};
 		0CCE4F952F241FA700209998 /* Features */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Features;
+			sourceTree = "<group>";
+		};
+		0CCE4FF72F268A9900209998 /* Core */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Core;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -98,9 +98,9 @@
 		0CCE4F512F24168100209998 = {
 			isa = PBXGroup;
 			children = (
-				0CCE4F952F241FA700209998 /* Features */,
-				0CCE4F912F241F8300209998 /* Core */,
 				0CCE4F8E2F241F5700209998 /* App */,
+				0CCE4FF72F268A9900209998 /* Core */,
+				0CCE4F952F241FA700209998 /* Features */,
 				0CCE4F6A2F24168400209998 /* SignumTests */,
 				0CCE4F742F24168400209998 /* SignumUITests */,
 				0CCE4F5B2F24168200209998 /* Products */,
@@ -134,8 +134,8 @@
 			);
 			fileSystemSynchronizedGroups = (
 				0CCE4F8E2F241F5700209998 /* App */,
-				0CCE4F912F241F8300209998 /* Core */,
 				0CCE4F952F241FA700209998 /* Features */,
+				0CCE4FF72F268A9900209998 /* Core */,
 			);
 			name = Signum;
 			packageProductDependencies = (
