@@ -24,24 +24,6 @@ struct RootView: View {
         } detail: {
             detailContent
         }
-
-        //        NavigationStack {
-        //            VStack(spacing: 20) {
-        //                Image(systemName: "doc.viewfinder")
-        //                    .font(.system(size: 60))
-        //                    .foregroundStyle(.blue)
-        //
-        //                Text(appName)
-        //                    .font(.largeTitle)
-        //                    .bold()
-        //
-        //                Text("Ready for Legal Processing")
-        //                    .font(.subheadline)
-        //                    .foregroundStyle(.secondary)
-        //            }
-        //            .padding()
-        //            .navigationTitle("Dashboard")
-        //        }
     }
 
     private var sidebarContent: some View {
@@ -52,7 +34,7 @@ struct RootView: View {
                     .padding(.vertical, 8)
             }
         }
-        .navigationTitle("Signum")
+        .navigationTitle(appName)
         .listStyle(.sidebar)
     }
 
