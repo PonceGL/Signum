@@ -20,7 +20,7 @@ extension LegalDocument {
         doc.docType = "JUICIO DE AMPARO"
         doc.expediente = "973/2026"
         doc.status = .needsReview
-        doc.suggestedName = "AMPARO_973_2026_FIRMADO.pdf"
+        doc.suggestedName = "MX 0942 dsahbdud 12982end.pdf"
         doc.userEditedName = doc.suggestedName ?? doc.originalFileName
 
         return doc

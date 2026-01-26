@@ -11,8 +11,7 @@ import UniformTypeIdentifiers
 struct MainWorkspaceView: View {
     @StateObject var viewModel: WorkspaceViewModel
 
-    @State private var columnVisibility: NavigationSplitViewVisibility =
-        .detailOnly
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var isInspectorPresented: Bool = true
     @State private var isFileImporterPresented: Bool = false
 
@@ -45,7 +44,7 @@ struct MainWorkspaceView: View {
             }
             .toolbar {
                 if !viewModel.documents.isEmpty {
-                    ToolbarItem(placement: .topBarLeading) {
+                    ToolbarItem(placement: .navigation) {
                         if columnVisibility == .detailOnly {
                             Button {
                                 toggleSidebar()
@@ -70,17 +69,21 @@ struct MainWorkspaceView: View {
                     }
                 }
             }
-            .inspector(isPresented: inspectorBinding) {
-                if let document = viewModel.selectedDocument {
-                    DocumentInspectorView(
-                        document: document,
-                        viewModel: viewModel
-                    )
-                    .inspectorColumnWidth(min: 220, ideal: 250, max: 360)
-                } else {
-                    Text("Selecciona un archivo")
-                        .foregroundColor(.secondary)
+            .signumInspector(isPresented: inspectorBinding) {
+                Group {
+                    if let document = viewModel.selectedDocument {
+                        DocumentInspectorView(
+                            document: document,
+                            viewModel: viewModel
+                        )
+                    } else {
+                        Text("Selecciona un archivo")
+                            .foregroundColor(.secondary)
+                    }
                 }
+                .modifier(
+                    InspectorWidthModifier(min: 220, ideal: 250, max: 360)
+                )
             }
         }
         .navigationSplitViewStyle(.balanced)
@@ -93,7 +96,7 @@ struct MainWorkspaceView: View {
             case .success(let urls):
                 viewModel.addFiles(from: urls)
             case .failure(let error):
-                // TODO: Implementar gestión de errores mediante un Toast o Alerta
+            // TODO: Implementar gestión de errores mediante un Toast o Alerta
                 print(
                     "Error al seleccionar archivos: \(error.localizedDescription)"
                 )
@@ -103,11 +106,10 @@ struct MainWorkspaceView: View {
             .spring(response: 0.4, dampingFraction: 0.8),
             value: columnVisibility
         )
-        .onChange(of: viewModel.documents.count) { oldValue, newValue in
+        .onSignumChange(of: viewModel.documents.count) { oldValue, newValue in
             let isEmpty = (newValue == 0)
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                columnVisibility =
-                    isEmpty ? .detailOnly : .all
+                columnVisibility = isEmpty ? .detailOnly : .all
             }
         }
         .onAppear {
@@ -132,6 +134,20 @@ struct MainWorkspaceView: View {
         withAnimation {
             columnVisibility =
                 (columnVisibility == .detailOnly) ? .all : .detailOnly
+        }
+    }
+}
+
+struct InspectorWidthModifier: ViewModifier {
+    let min: CGFloat
+    let ideal: CGFloat
+    let max: CGFloat
+
+    func body(content: Content) -> some View {
+        if #available(iOS 17.0, macOS 14.0, *) {
+            content.inspectorColumnWidth(min: min, ideal: ideal, max: max)
+        } else {
+            content.frame(minWidth: min, idealWidth: ideal, maxWidth: max)
         }
     }
 }
