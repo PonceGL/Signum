@@ -67,7 +67,14 @@ struct MainWorkspaceView: View {
             value: columnVisibility
         )
         .onSignumChange(of: viewModel.documents.count) { _, newValue in
-            updateColumnVisibility(isEmpty: newValue == 0)
+            let isEmpty = (newValue == 0)
+
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 100_000_000)  // 0.1s para dejar que la ventana respire
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                    columnVisibility = isEmpty ? .detailOnly : .all
+                }
+            }
         }
         .onAppear {
             updateColumnVisibility(isEmpty: viewModel.documents.isEmpty)

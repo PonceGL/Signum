@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UniformTypeIdentifiers
 
 enum DocumentStatus: String, Codable, CaseIterable {
     case pending  // Recién agregado
