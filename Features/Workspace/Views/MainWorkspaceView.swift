@@ -29,19 +29,10 @@ struct MainWorkspaceView: View {
 
         } detail: {
             // COLUMNA 2: CONTENIDO PRINCIPAL
-            ZStack {
-                if let document = viewModel.selectedDocument {
-                    PDFPreviewView(document: document)
-                } else {
-                    SignumEmptyStateView(
-                        title: "Mesa Vacía",
-                        systemImage: "doc.viewfinder",
-                        description: "Arrastra archivos para comenzar.",
-                        actionLabel: "Seleccionar Archivos",
-                        action: { isFileImporterPresented = true }
-                    )
-                }
-            }
+            WorkspaceDetailContainer(
+                viewModel: viewModel,
+                isFileImporterPresented: $isFileImporterPresented
+            )
             .toolbar {
                 if !viewModel.documents.isEmpty {
                     #if !os(macOS)
