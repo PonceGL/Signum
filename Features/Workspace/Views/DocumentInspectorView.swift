@@ -80,7 +80,7 @@ struct DocumentInspectorView: View {
         .onAppear {
             editedName = document.userEditedName
         }
-        .onChange(of: document.id) { _ in
+        .onSignumChange(of: document.id) { _, newValue in
             editedName = document.userEditedName
         }
     }

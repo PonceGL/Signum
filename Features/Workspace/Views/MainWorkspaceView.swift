@@ -70,7 +70,7 @@ struct MainWorkspaceView: View {
             let isEmpty = (newValue == 0)
 
             Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 100_000_000)  // 0.1s para dejar que la ventana respire
+                try? await Task.sleep(nanoseconds: 100_000_000)
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     columnVisibility = isEmpty ? .detailOnly : .all
                 }
