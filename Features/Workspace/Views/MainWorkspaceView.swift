@@ -103,6 +103,13 @@ struct MainWorkspaceView: View {
             .spring(response: 0.4, dampingFraction: 0.8),
             value: columnVisibility
         )
+        .onChange(of: viewModel.documents.count) { oldValue, newValue in
+            let isEmpty = (newValue == 0)
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                columnVisibility =
+                    isEmpty ? .detailOnly : .all
+            }
+        }
         .onAppear {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 columnVisibility =
