@@ -25,24 +25,7 @@ struct MainWorkspaceView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             // COLUMNA 1: SIDEBAR
-            if !viewModel.documents.isEmpty {
-                WorkspaceSidebarView(viewModel: viewModel)
-                    .navigationSplitViewColumnWidth(
-                        min: 250,
-                        ideal: 300,
-                        max: 350
-                    )
-            } else {
-                SignumEmptyStateView(
-                    title: "Mesa Vacía",
-                    systemImage: "doc.viewfinder",
-                    description: "Arrastra archivos para comenzar.",
-                ).navigationSplitViewColumnWidth(
-                    min: 250,
-                    ideal: 300,
-                    max: 350
-                )
-            }
+            WorkspaceSidebarContainer(viewModel: viewModel)
 
         } detail: {
             // COLUMNA 2: CONTENIDO PRINCIPAL
