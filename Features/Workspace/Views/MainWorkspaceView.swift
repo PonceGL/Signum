@@ -11,8 +11,10 @@ import UniformTypeIdentifiers
 struct MainWorkspaceView: View {
     @StateObject var viewModel: WorkspaceViewModel
 
+    @State private var columnVisibility: NavigationSplitViewVisibility =
+        .detailOnly
     @State private var isInspectorPresented: Bool = true
-    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var isFileImporterPresented: Bool = false
 
     init(viewModel: WorkspaceViewModel? = nil) {
         _viewModel = StateObject(
@@ -35,36 +37,40 @@ struct MainWorkspaceView: View {
                     SignumEmptyStateView(
                         title: "Mesa Vacía",
                         systemImage: "doc.viewfinder",
-                        description: "Arrastra archivos para comenzar."
+                        description: "Arrastra archivos para comenzar.",
+                        actionLabel: "Seleccionar Archivos",
+                        action: { isFileImporterPresented = true }
                     )
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    if columnVisibility == .detailOnly {
-                        Button {
-                            toggleSidebar()
-                        } label: {
-                            Label(
-                                "Mostrar Documentos",
-                                systemImage: "sidebar.left"
+                if !viewModel.documents.isEmpty {
+                    ToolbarItem(placement: .topBarLeading) {
+                        if columnVisibility == .detailOnly {
+                            Button {
+                                toggleSidebar()
+                            } label: {
+                                Label(
+                                    "Mostrar Documentos",
+                                    systemImage: "sidebar.left"
+                                )
+                            }
+                            .transition(
+                                .move(edge: .leading).combined(with: .opacity)
                             )
                         }
-                        .transition(
-                            .move(edge: .leading).combined(with: .opacity)
-                        )
                     }
-                }
 
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        isInspectorPresented.toggle()
-                    } label: {
-                        Label("Inspector", systemImage: "sidebar.right")
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            isInspectorPresented.toggle()
+                        } label: {
+                            Label("Inspector", systemImage: "sidebar.right")
+                        }
                     }
                 }
             }
-            .inspector(isPresented: $isInspectorPresented) {
+            .inspector(isPresented: inspectorBinding) {
                 if let document = viewModel.selectedDocument {
                     DocumentInspectorView(
                         document: document,
@@ -78,17 +84,47 @@ struct MainWorkspaceView: View {
             }
         }
         .navigationSplitViewStyle(.balanced)
+        .fileImporter(
+            isPresented: $isFileImporterPresented,
+            allowedContentTypes: [.pdf],
+            allowsMultipleSelection: true
+        ) { result in
+            switch result {
+            case .success(let urls):
+                viewModel.addFiles(from: urls)
+            case .failure(let error):
+                // TODO: Implementar gestión de errores mediante un Toast o Alerta
+                print(
+                    "Error al seleccionar archivos: \(error.localizedDescription)"
+                )
+            }
+        }
         .animation(
             .spring(response: 0.4, dampingFraction: 0.8),
             value: columnVisibility
         )
+        .onAppear {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                columnVisibility =
+                    viewModel.documents.isEmpty ? .detailOnly : .all
+            }
+        }
+    }
+
+    private var inspectorBinding: Binding<Bool> {
+        Binding(
+            get: {
+                isInspectorPresented && !viewModel.documents.isEmpty
+                    && !viewModel.isProcessing
+            },
+            set: { isInspectorPresented = $0 }
+        )
     }
 
     private func toggleSidebar() {
-        if columnVisibility == .detailOnly {
-            columnVisibility = .all
-        } else {
-            columnVisibility = .detailOnly
+        withAnimation {
+            columnVisibility =
+                (columnVisibility == .detailOnly) ? .all : .detailOnly
         }
     }
 }
