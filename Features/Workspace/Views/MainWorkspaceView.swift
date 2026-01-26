@@ -10,43 +10,85 @@ import UniformTypeIdentifiers
 
 struct MainWorkspaceView: View {
     @StateObject var viewModel: WorkspaceViewModel
+
+    @State private var isInspectorPresented: Bool = true
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     init(viewModel: WorkspaceViewModel? = nil) {
-        _viewModel = StateObject(wrappedValue: viewModel ?? WorkspaceViewModel())
+        _viewModel = StateObject(
+            wrappedValue: viewModel ?? WorkspaceViewModel()
+        )
     }
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            // COLUMNA 1: Sidebar - Listado de Archivos
+            // COLUMNA 1: SIDEBAR
             WorkspaceSidebarView(viewModel: viewModel)
-                .navigationTitle("Documentos")
-
-        } content: {
-            // COLUMNA 2: Centro - Visor de PDF
-            if let document = viewModel.selectedDocument {
-                 PDFPreviewView(document: document)
-            } else {
-                SignumEmptyStateView(
-                    title: "Sin Selección",
-                    systemImage: "doc.viewfinder",
-                    description: "Selecciona un documento para visualizarlo."
-                )
-            }
+                .navigationSplitViewColumnWidth(min: 250, ideal: 300, max: 350)
 
         } detail: {
-            // COLUMNA 3: Derecha - Panel de Edición
-            if let document = viewModel.selectedDocument {
-                DocumentInspectorView(document: document, viewModel: viewModel)
-            } else {
-                Text("Detalles del archivo")
-                    .foregroundColor(.secondary)
+            // COLUMNA 2: CONTENIDO PRINCIPAL
+            ZStack {
+                if let document = viewModel.selectedDocument {
+                    PDFPreviewView(document: document)
+                } else {
+                    SignumEmptyStateView(
+                        title: "Mesa Vacía",
+                        systemImage: "doc.viewfinder",
+                        description: "Arrastra archivos para comenzar."
+                    )
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    if columnVisibility == .detailOnly {
+                        Button {
+                            toggleSidebar()
+                        } label: {
+                            Label(
+                                "Mostrar Documentos",
+                                systemImage: "sidebar.left"
+                            )
+                        }
+                        .transition(
+                            .move(edge: .leading).combined(with: .opacity)
+                        )
+                    }
+                }
+
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        isInspectorPresented.toggle()
+                    } label: {
+                        Label("Inspector", systemImage: "sidebar.right")
+                    }
+                }
+            }
+            .inspector(isPresented: $isInspectorPresented) {
+                if let document = viewModel.selectedDocument {
+                    DocumentInspectorView(
+                        document: document,
+                        viewModel: viewModel
+                    )
+                    .inspectorColumnWidth(min: 220, ideal: 250, max: 360)
+                } else {
+                    Text("Selecciona un archivo")
+                        .foregroundColor(.secondary)
+                }
             }
         }
-        // Soporte para Drop de archivos en toda la vista
-        .onDrop(of: [.pdf], isTargeted: nil) { providers in
-            // TODO: Lógica para procesar el drop (la implementaremos a detalle)
-            return true
+        .navigationSplitViewStyle(.balanced)
+        .animation(
+            .spring(response: 0.4, dampingFraction: 0.8),
+            value: columnVisibility
+        )
+    }
+
+    private func toggleSidebar() {
+        if columnVisibility == .detailOnly {
+            columnVisibility = .all
+        } else {
+            columnVisibility = .detailOnly
         }
     }
 }
@@ -60,7 +102,7 @@ struct MainWorkspaceView: View {
     // Agregamos el mock a la lista
     vm.documents = [.mock]
     vm.selectedDocumentID = vm.documents.first?.id
-    
+
     return MainWorkspaceView(viewModel: vm)
 }
 
@@ -71,7 +113,6 @@ struct MainWorkspaceView: View {
     vm.documents = [doc]
     vm.isProcessing = true
     vm.totalProgress = 0.5
-    
+
     return MainWorkspaceView(viewModel: vm)
 }
-

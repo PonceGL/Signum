@@ -66,7 +66,7 @@ struct DocumentInspectorView: View {
             }) {
                 HStack {
                     Spacer()
-                    Text("Confirmar y Siguiente")
+                    Text("Confirmar")
                         .fontWeight(.bold)
                     Spacer()
                 }

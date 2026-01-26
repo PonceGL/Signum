@@ -47,9 +47,6 @@ struct PDFPreviewView: View {
             .buttonStyle(.plain)
         }
         .background(Color.black.opacity(0.05))
-        .onAppear {
-            print("PDFPreviewView apareció con document: \(document)")
-        }
     }
 }
 
