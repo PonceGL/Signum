@@ -8,6 +8,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+@MainActor
 struct MainWorkspaceView: View {
     @StateObject var viewModel: WorkspaceViewModel
 
@@ -17,9 +18,8 @@ struct MainWorkspaceView: View {
     @State private var isFileImporterPresented: Bool = false
 
     init(viewModel: WorkspaceViewModel? = nil) {
-        _viewModel = StateObject(
-            wrappedValue: viewModel ?? WorkspaceViewModel()
-        )
+        let vm = viewModel ?? WorkspaceViewModel()
+        _viewModel = StateObject(wrappedValue: vm)
     }
 
     var body: some View {
@@ -34,35 +34,7 @@ struct MainWorkspaceView: View {
                 isFileImporterPresented: $isFileImporterPresented
             )
             .toolbar {
-                if !viewModel.documents.isEmpty {
-                    #if !os(macOS)
-                        ToolbarItem(placement: .topBarLeading) {
-                            if columnVisibility == .detailOnly {
-                                Button {
-                                    toggleSidebar()
-                                } label: {
-                                    Label(
-                                        "Mostrar Documentos",
-                                        systemImage: "sidebar.left"
-                                    )
-                                }
-                                .transition(
-                                    .move(edge: .leading).combined(
-                                        with: .opacity
-                                    )
-                                )
-                            }
-                        }
-                    #endif
-
-                    ToolbarItem(placement: .primaryAction) {
-                        Button {
-                            isInspectorPresented.toggle()
-                        } label: {
-                            Label("Inspector", systemImage: "sidebar.right")
-                        }
-                    }
-                }
+                workspaceToolbar
             }
             .signumInspector(isPresented: inspectorBinding) {
                 Group {
@@ -88,30 +60,49 @@ struct MainWorkspaceView: View {
             allowedContentTypes: [.pdf],
             allowsMultipleSelection: true
         ) { result in
-            switch result {
-            case .success(let urls):
-                viewModel.addFiles(from: urls)
-            case .failure(let error):
-                // TODO: Implementar gestión de errores mediante un Toast o Alerta
-                print(
-                    "Error al seleccionar archivos: \(error.localizedDescription)"
-                )
-            }
+            handleImport(result: result)
         }
         .animation(
             .spring(response: 0.4, dampingFraction: 0.8),
             value: columnVisibility
         )
-        .onSignumChange(of: viewModel.documents.count) { oldValue, newValue in
-            let isEmpty = (newValue == 0)
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                columnVisibility = isEmpty ? .detailOnly : .all
-            }
+        .onSignumChange(of: viewModel.documents.count) { _, newValue in
+            updateColumnVisibility(isEmpty: newValue == 0)
         }
         .onAppear {
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                columnVisibility =
-                    viewModel.documents.isEmpty ? .detailOnly : .all
+            updateColumnVisibility(isEmpty: viewModel.documents.isEmpty)
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var workspaceToolbar: some ToolbarContent {
+        if !viewModel.documents.isEmpty {
+            #if !os(macOS)
+                ToolbarItem(placement: .topBarLeading) {
+                    if columnVisibility == .detailOnly {
+                        Button {
+                            toggleSidebar()
+                        } label: {
+                            Label(
+                                "Mostrar Documentos",
+                                systemImage: "sidebar.left"
+                            )
+                        }
+                        .transition(
+                            .move(edge: .leading).combined(
+                                with: .opacity
+                            )
+                        )
+                    }
+                }
+            #endif
+
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    isInspectorPresented.toggle()
+                } label: {
+                    Label("Inspector", systemImage: "sidebar.right")
+                }
             }
         }
     }
@@ -126,10 +117,27 @@ struct MainWorkspaceView: View {
         )
     }
 
+    private func updateColumnVisibility(isEmpty: Bool) {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+            columnVisibility = isEmpty ? .detailOnly : .all
+        }
+    }
+
     private func toggleSidebar() {
         withAnimation {
             columnVisibility =
                 (columnVisibility == .detailOnly) ? .all : .detailOnly
+        }
+    }
+
+    private func handleImport(result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            viewModel.addFiles(from: urls)
+        case .failure(let error):
+            print(
+                "Error al seleccionar archivos: \(error.localizedDescription)"
+            )
         }
     }
 }
