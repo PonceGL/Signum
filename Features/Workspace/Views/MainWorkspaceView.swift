@@ -11,7 +11,8 @@ import UniformTypeIdentifiers
 struct MainWorkspaceView: View {
     @StateObject var viewModel: WorkspaceViewModel
 
-    @State private var columnVisibility: NavigationSplitViewVisibility = .detailOnly
+    @State private var columnVisibility: NavigationSplitViewVisibility =
+        .detailOnly
     @State private var isInspectorPresented: Bool = true
     @State private var isFileImporterPresented: Bool = false
 
@@ -24,8 +25,24 @@ struct MainWorkspaceView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             // COLUMNA 1: SIDEBAR
-            WorkspaceSidebarView(viewModel: viewModel)
-                .navigationSplitViewColumnWidth(min: 250, ideal: 300, max: 350)
+            if !viewModel.documents.isEmpty {
+                WorkspaceSidebarView(viewModel: viewModel)
+                    .navigationSplitViewColumnWidth(
+                        min: 250,
+                        ideal: 300,
+                        max: 350
+                    )
+            } else {
+                SignumEmptyStateView(
+                    title: "Mesa Vacía",
+                    systemImage: "doc.viewfinder",
+                    description: "Arrastra archivos para comenzar.",
+                ).navigationSplitViewColumnWidth(
+                    min: 250,
+                    ideal: 300,
+                    max: 350
+                )
+            }
 
         } detail: {
             // COLUMNA 2: CONTENIDO PRINCIPAL
@@ -91,6 +108,7 @@ struct MainWorkspaceView: View {
             }
         }
         .navigationSplitViewStyle(.balanced)
+        .signumSidebarToggle(hidden: viewModel.documents.isEmpty)
         .fileImporter(
             isPresented: $isFileImporterPresented,
             allowedContentTypes: [.pdf],

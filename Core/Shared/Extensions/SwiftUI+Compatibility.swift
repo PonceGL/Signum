@@ -49,6 +49,17 @@ extension View {
             }
         }
     }
+
+    @ViewBuilder
+    func signumSidebarToggle(hidden: Bool) -> some View {
+        if #available(macOS 14.0, iOS 17.0, *) {
+            // En versiones modernas (v26), podemos removerlo del todo
+            self.toolbar(removing: hidden ? .sidebarToggle : nil)
+        } else {
+            // En macOS 13 no se puede remover fácilmente, pero podemos intentar mitigar su uso o dejarlo pasar por ahora si no es crítico
+            self
+        }
+    }
 }
 
 struct InspectorLegacyModifier<InspectorContent: View>: ViewModifier {
