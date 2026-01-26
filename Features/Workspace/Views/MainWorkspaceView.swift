@@ -11,7 +11,7 @@ import UniformTypeIdentifiers
 struct MainWorkspaceView: View {
     @StateObject var viewModel: WorkspaceViewModel
 
-    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var columnVisibility: NavigationSplitViewVisibility = .detailOnly
     @State private var isInspectorPresented: Bool = true
     @State private var isFileImporterPresented: Bool = false
 
@@ -44,21 +44,25 @@ struct MainWorkspaceView: View {
             }
             .toolbar {
                 if !viewModel.documents.isEmpty {
-                    ToolbarItem(placement: .navigation) {
-                        if columnVisibility == .detailOnly {
-                            Button {
-                                toggleSidebar()
-                            } label: {
-                                Label(
-                                    "Mostrar Documentos",
-                                    systemImage: "sidebar.left"
+                    #if !os(macOS)
+                        ToolbarItem(placement: .topBarLeading) {
+                            if columnVisibility == .detailOnly {
+                                Button {
+                                    toggleSidebar()
+                                } label: {
+                                    Label(
+                                        "Mostrar Documentos",
+                                        systemImage: "sidebar.left"
+                                    )
+                                }
+                                .transition(
+                                    .move(edge: .leading).combined(
+                                        with: .opacity
+                                    )
                                 )
                             }
-                            .transition(
-                                .move(edge: .leading).combined(with: .opacity)
-                            )
                         }
-                    }
+                    #endif
 
                     ToolbarItem(placement: .primaryAction) {
                         Button {
@@ -96,7 +100,7 @@ struct MainWorkspaceView: View {
             case .success(let urls):
                 viewModel.addFiles(from: urls)
             case .failure(let error):
-            // TODO: Implementar gestión de errores mediante un Toast o Alerta
+                // TODO: Implementar gestión de errores mediante un Toast o Alerta
                 print(
                     "Error al seleccionar archivos: \(error.localizedDescription)"
                 )
