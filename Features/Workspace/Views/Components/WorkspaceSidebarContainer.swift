@@ -22,7 +22,6 @@ struct WorkspaceSidebarContainer: View {
                 )
             }
         }
-        .navigationSplitViewColumnWidth(min: 250, ideal: 300, max: 350)
     }
 }
 
@@ -34,7 +33,6 @@ struct WorkspaceSidebarContainer: View {
 
 #Preview("Con Archivo Seleccionado") {
     let vm = WorkspaceViewModel()
-    // Agregamos el mock a la lista
     vm.documents = [.mock]
     vm.selectedDocumentID = vm.documents.first?.id
 
