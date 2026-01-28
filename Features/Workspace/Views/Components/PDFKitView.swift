@@ -36,6 +36,7 @@ struct PDFKitView: ViewRepresentable {
         pdfView.displayDirection = .vertical
         pdfView.maxScaleFactor = 4.0
         pdfView.minScaleFactor = 0.5
+        pdfView.backgroundColor = .clear
         return pdfView
     }
 

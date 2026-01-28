@@ -12,6 +12,13 @@ struct SignumApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                #if os(macOS)
+                    .frame(minWidth: 1200, minHeight: 700)
+                #endif
         }
+        #if os(macOS)
+            .windowResizability(.contentSize)
+            .windowStyle(.hiddenTitleBar)
+        #endif
     }
 }

@@ -46,7 +46,6 @@ struct PDFPreviewView: View {
             .padding()
             .buttonStyle(.plain)
         }
-        .background(Color.black.opacity(0.05))
     }
 }
 
