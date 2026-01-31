@@ -33,6 +33,7 @@ struct WorkspaceBehaviorModifier: ViewModifier {
                 .spring(response: 0.4, dampingFraction: 0.8),
                 value: columnVisibility
             )
+            .withDocumentDropSupport(viewModel: viewModel)
     }
 
     private func updateVisibility(isEmpty: Bool) {

@@ -82,12 +82,6 @@ struct MainWorkspaceView: View {
         )
     }
 
-//    private func updateColumnVisibility(isEmpty: Bool) {
-//        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-//            columnVisibility = isEmpty ? .detailOnly : .all
-//        }
-//    }
-
     private func handleImport(result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
@@ -96,6 +90,8 @@ struct MainWorkspaceView: View {
             print(
                 "Error al seleccionar archivos: \(error.localizedDescription)"
             )
+            viewModel.importErrorMessage =
+                "Error de sistema al seleccionar archivos: \(error.localizedDescription)"
         }
     }
 }
