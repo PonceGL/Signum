@@ -71,14 +71,22 @@ class WorkspaceViewModel: ObservableObject {
     ) {
         var newDocumentsCount = 0
 
+        // 1. Procesar Éxitos
         for item in results.successes {
-            // A. Persistencia de Permisos (Security Scope)
-            // El ViewModel es dueño de la sesión de trabajo, así que solicitamos acceso persistente.
-            if item.url.startAccessingSecurityScopedResource() {
-                securityAccessURLs.insert(item.url)
+            if !securityAccessURLs.contains(item.originalSource) {
+                if item.originalSource.startAccessingSecurityScopedResource() {
+                    securityAccessURLs.insert(item.originalSource)
+                    print(
+                        "🔐 Acceso seguro garantizado para: \(item.originalSource.lastPathComponent)"
+                    )
+                } else {
+                    print(
+                        "❌ Error al obtener acceso seguro para: \(item.originalSource.lastPathComponent)"
+                    )
+                }
             }
 
-            // B. Evitar duplicados
+            // Evitar duplicados en la lista visual
             if !documents.contains(where: { $0.originalURL == item.url }) {
                 let newDoc = LegalDocument(url: item.url)
                 documents.append(newDoc)
@@ -86,17 +94,23 @@ class WorkspaceViewModel: ObservableObject {
             }
         }
 
-        // C. Selección automática (UX)
-        // Si no había nada seleccionado y agregamos algo, seleccionamos el primero disponible.
-        if selectedDocumentID == nil, let first = documents.first {
-            selectedDocumentID = first.id
+        // 2. Selección automática (Con Delay Táctico para UI)
+        let shouldSelectFirst = (selectedDocumentID == nil)
+        let firstDocID = documents.first?.id
+
+        if shouldSelectFirst, let firstID = firstDocID {
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 200_000_000)
+
+                if documents.contains(where: { $0.id == firstID }) {
+                    self.selectedDocumentID = firstID
+                }
+            }
         }
 
         // 3. Gestión de Errores
         if !results.failures.isEmpty {
-            // Construimos un mensaje útil para el usuario/estado
             let failureCount = results.failures.count
-            // Tomamos el primer error como ejemplo para el mensaje
             let firstErrorDescription =
                 results.failures.values.first?.localizedDescription
                 ?? "Error desconocido"
@@ -108,18 +122,11 @@ class WorkspaceViewModel: ObservableObject {
                 importErrorMessage =
                     "Se importaron \(newDocumentsCount) archivos, pero \(failureCount) fallaron. Ejemplo: \(firstErrorDescription)"
             }
-
-            // Imprimimos en consola para debug
             print("⚠️ Reporte de Importación: \(importErrorMessage ?? "")")
         } else if newDocumentsCount > 0 {
-            // Si todo salió bien, limpiamos cualquier error previo
             importErrorMessage = nil
             print("✅ Importación exitosa de \(newDocumentsCount) archivos.")
         }
-
-        print(
-            "✅ Importación finalizada. \(newDocumentsCount) documentos nuevos añadidos."
-        )
     }
 
     func removeDocument(_ document: LegalDocument) {
@@ -186,15 +193,25 @@ class WorkspaceViewModel: ObservableObject {
     }
 
     func clearWorkspace() {
-        // Liberar todos los permisos antes de limpiar
+        // PASO 1: Deseleccionar primero.
+        selectedDocumentID = nil
+
+        // PASO 2: Liberar recursos de seguridad
         for url in securityAccessURLs {
             url.stopAccessingSecurityScopedResource()
         }
         securityAccessURLs.removeAll()
 
-        documents.removeAll()
-        selectedDocumentID = nil
+        // PASO 3: Ahora sí, destruir los datos
+        documents.removeAll(keepingCapacity: false)
+
+        // PASO 4: Resetear estados auxiliares
         totalProgress = 0.0
+        importErrorMessage = nil
+        isImporting = false
+        isProcessing = false
+
+        print("🧹 Workspace limpiado correctamente.")
     }
 
     // MARK: - Deinit

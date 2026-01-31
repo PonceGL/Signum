@@ -29,7 +29,7 @@ struct DocumentDropModifier: ViewModifier {
                     var urls: [URL] = []
 
                     for provider in providers {
-                        if let url = await provider.loadUrl() {
+                        if let url = await provider.loadSmartUrl() {
                             urls.append(url)
                         }
                     }
@@ -52,40 +52,53 @@ extension View {
     }
 }
 
+// MARK: - NSItemProvider Helper (Estrategia Secuencial)
 extension NSItemProvider {
-    fileprivate func loadUrl() async -> URL? {
-        return await withCheckedContinuation { continuation in
-            if hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-                loadItem(
-                    forTypeIdentifier: UTType.fileURL.identifier,
-                    options: nil
-                ) { (item, error) in
-                    if let data = item as? Data,
-                        let url = URL(dataRepresentation: data, relativeTo: nil)
-                    {
-                        continuation.resume(returning: url)
-                    } else if let url = item as? URL {
-                        continuation.resume(returning: url)
-                    } else {
-                        continuation.resume(returning: nil)
-                    }
-                }
-            }
 
-            else if hasItemConformingToTypeIdentifier(UTType.folder.identifier)
-            {
-                loadItem(
-                    forTypeIdentifier: UTType.folder.identifier,
-                    options: nil
-                ) { (item, error) in
-                    if let url = item as? URL {
-                        continuation.resume(returning: url)
-                    } else {
-                        continuation.resume(returning: nil)
-                    }
+    /// Intenta cargar la URL probando tipos específicos en orden de prioridad.
+    fileprivate func loadSmartUrl() async -> URL? {
+        // 1. Intento: Carpeta (Prioridad Alta)
+        if let url = await getURL(for: .folder) {
+            return url
+        }
+
+        // 2. Intento: URL de Archivo Genérica (Estándar en Mac)
+        if let url = await getURL(for: .fileURL) {
+            return url
+        }
+
+        // 3. Intento: PDF Específico (Común en iPad arrastrando desde Files)
+        if let url = await getURL(for: .pdf) {
+            return url
+        }
+
+        return nil
+    }
+
+    /// Helper genérico que intenta extraer una URL para un tipo de dato específico.
+    /// Retorna nil si el provider no soporta el tipo o falla la carga.
+    fileprivate func getURL(for type: UTType) async -> URL? {
+        guard hasItemConformingToTypeIdentifier(type.identifier) else {
+            return nil
+        }
+
+        return await withCheckedContinuation { continuation in
+            loadItem(forTypeIdentifier: type.identifier, options: nil) {
+                (item, error) in
+                // Opción A: Es directamente una URL
+                if let url = item as? URL {
+                    continuation.resume(returning: url)
                 }
-            } else {
-                continuation.resume(returning: nil)
+                // Opción B: Es Data que representa una URL (sucede a veces en drop complejos)
+                else if let data = item as? Data,
+                    let url = URL(dataRepresentation: data, relativeTo: nil)
+                {
+                    continuation.resume(returning: url)
+                }
+                // Opción C: Falló
+                else {
+                    continuation.resume(returning: nil)
+                }
             }
         }
     }
