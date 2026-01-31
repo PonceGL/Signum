@@ -66,68 +66,72 @@ class WorkspaceViewModel: ObservableObject {
     }
 
     /// Procesa los resultados del servicio y actualiza el estado local.
-    private func handleImportResults(
-        _ results: (successes: [ImportResult], failures: [URL: FileImportError])
-    ) {
-        var newDocumentsCount = 0
-
-        // 1. Procesar Éxitos
-        for item in results.successes {
-            if !securityAccessURLs.contains(item.originalSource) {
-                if item.originalSource.startAccessingSecurityScopedResource() {
-                    securityAccessURLs.insert(item.originalSource)
-                    print(
-                        "🔐 Acceso seguro garantizado para: \(item.originalSource.lastPathComponent)"
-                    )
+    private func handleImportResults(_ results: (successes: [ImportResult], failures: [URL: FileImportError])) {
+            var newDocumentsCount = 0
+            
+            // Set temporal para rastrear qué orígenes (carpetas) ya intentamos abrir en este lote.
+            // Esto evita el spam de "❌ Error al obtener acceso seguro" repetido por cada archivo de la misma carpeta.
+            var processedSources: Set<URL> = []
+            
+            // 1. Procesar Éxitos
+            for item in results.successes {
+                
+                // LOGICA DE SEGURIDAD OPTIMIZADA
+                // Solo intentamos acceder si no lo hemos procesado en este lote Y no lo tenemos ya guardado
+                if !processedSources.contains(item.originalSource) && !securityAccessURLs.contains(item.originalSource) {
+                    
+                    // Marcamos como procesado para no reintentar en la siguiente vuelta del bucle
+                    processedSources.insert(item.originalSource)
+                    
+                    if item.originalSource.startAccessingSecurityScopedResource() {
+                        securityAccessURLs.insert(item.originalSource)
+                        print("🔐 Acceso seguro garantizado para: \(item.originalSource.lastPathComponent)")
+                    } else {
+                        // Si falla, es probable que sea un Drag&Drop que no requiere/soporta este scope explícito.
+                        // Lo dejamos pasar silenciosamente (o con un solo log informativo) en lugar de un error rojo.
+                        print("ℹ️ Nota: Acceso explícito no requerido para: \(item.originalSource.lastPathComponent)")
+                    }
+                }
+                
+                // Evitar duplicados en la lista visual
+                if !documents.contains(where: { $0.originalURL == item.url }) {
+                    let newDoc = LegalDocument(url: item.url)
+                    documents.append(newDoc)
+                    newDocumentsCount += 1
+                }
+            }
+            
+            // 2. Selección automática (Con Delay para estabilidad de UI)
+            let shouldSelectFirst = (selectedDocumentID == nil)
+            let firstDocID = documents.first?.id
+            
+            if shouldSelectFirst, let firstID = firstDocID {
+                Task { @MainActor in
+                    // Delay táctico de 0.2s para esperar a las animaciones de la UI
+                    try? await Task.sleep(nanoseconds: 200_000_000)
+                    
+                    if documents.contains(where: { $0.id == firstID }) {
+                        self.selectedDocumentID = firstID
+                    }
+                }
+            }
+            
+            // 3. Gestión de Errores
+            if !results.failures.isEmpty {
+                let failureCount = results.failures.count
+                let firstErrorDescription = results.failures.values.first?.localizedDescription ?? "Error desconocido"
+                
+                if failureCount == 1 {
+                    importErrorMessage = "No se pudo importar un archivo: \(firstErrorDescription)"
                 } else {
-                    print(
-                        "❌ Error al obtener acceso seguro para: \(item.originalSource.lastPathComponent)"
-                    )
+                    importErrorMessage = "Se importaron \(newDocumentsCount) archivos, pero \(failureCount) fallaron. Ejemplo: \(firstErrorDescription)"
                 }
-            }
-
-            // Evitar duplicados en la lista visual
-            if !documents.contains(where: { $0.originalURL == item.url }) {
-                let newDoc = LegalDocument(url: item.url)
-                documents.append(newDoc)
-                newDocumentsCount += 1
+                print("⚠️ Reporte de Importación: \(importErrorMessage ?? "")")
+            } else if newDocumentsCount > 0 {
+                importErrorMessage = nil
+                print("✅ Importación exitosa de \(newDocumentsCount) archivos.")
             }
         }
-
-        // 2. Selección automática (Con Delay Táctico para UI)
-        let shouldSelectFirst = (selectedDocumentID == nil)
-        let firstDocID = documents.first?.id
-
-        if shouldSelectFirst, let firstID = firstDocID {
-            Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 200_000_000)
-
-                if documents.contains(where: { $0.id == firstID }) {
-                    self.selectedDocumentID = firstID
-                }
-            }
-        }
-
-        // 3. Gestión de Errores
-        if !results.failures.isEmpty {
-            let failureCount = results.failures.count
-            let firstErrorDescription =
-                results.failures.values.first?.localizedDescription
-                ?? "Error desconocido"
-
-            if failureCount == 1 {
-                importErrorMessage =
-                    "No se pudo importar un archivo: \(firstErrorDescription)"
-            } else {
-                importErrorMessage =
-                    "Se importaron \(newDocumentsCount) archivos, pero \(failureCount) fallaron. Ejemplo: \(firstErrorDescription)"
-            }
-            print("⚠️ Reporte de Importación: \(importErrorMessage ?? "")")
-        } else if newDocumentsCount > 0 {
-            importErrorMessage = nil
-            print("✅ Importación exitosa de \(newDocumentsCount) archivos.")
-        }
-    }
 
     func removeDocument(_ document: LegalDocument) {
         documents.removeAll { $0.id == document.id }
