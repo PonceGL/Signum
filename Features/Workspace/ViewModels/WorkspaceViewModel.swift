@@ -180,13 +180,60 @@ class WorkspaceViewModel: ObservableObject {
     }
 
     /// Actualiza el nombre editado por el usuario y marca como verificado.
-    func verifyDocument(id: UUID, newName: String) {
-        if let index = documents.firstIndex(where: { $0.id == id }) {
-            documents[index].userEditedName = newName
-            documents[index].status = .verified
-            selectNextPendingDocument()
+    /// Renombra el archivo físico en disco y actualiza el modelo.
+        /// - Parameters:
+        ///   - id: ID del documento a procesar.
+        ///   - newName: El nuevo nombre ingresado por el usuario (sin extensión).
+        func finalizeAndRenameDocument(id: UUID, newName: String) {
+            guard let index = documents.firstIndex(where: { $0.id == id }) else { return }
+            
+            let currentDoc = documents[index]
+            let currentURL = currentDoc.originalURL // La URL actual completa
+            
+            // 1. Limpieza del nombre (Básico)
+            // Eliminamos caracteres ilegales del sistema de archivos para evitar crashes
+            let safeName = newName.replacingOccurrences(of: "/", with: "-")
+                                  .replacingOccurrences(of: ":", with: "-")
+            
+            // 2. Construir la nueva ruta
+            // Obtenemos la carpeta contenedora (sobre la cual ya deberíamos tener permisos gracias al fix anterior)
+            let folderURL = currentURL.deletingLastPathComponent()
+            // Agregamos el nuevo nombre y aseguramos la extensión PDF
+            let newURL = folderURL.appendingPathComponent(safeName).appendingPathExtension("pdf")
+            
+            // 3. Renombrado Físico (FileManager)
+            do {
+                // Verificamos si ya existe un archivo con ese nombre para no sobrescribirlo
+                if FileManager.default.fileExists(atPath: newURL.path) {
+                    print("⚠️ Error: Ya existe un archivo con el nombre '\(safeName)' en esta carpeta.")
+                    // Aquí podrías lanzar una alerta al usuario, por ahora solo retornamos
+                    return
+                }
+                
+                // ¡EL MOMENTO DE LA VERDAD! Intentamos mover (renombrar) el archivo.
+                try FileManager.default.moveItem(at: currentURL, to: newURL)
+                
+                print("✅ Archivo renombrado físicamente a: \(newURL.lastPathComponent)")
+                
+                // 4. Actualizar el Modelo
+                // Es crucial actualizar la URL en el modelo, si no, la próxima vez apuntará al archivo viejo.
+                documents[index].userEditedName = safeName
+                documents[index].originalURL = newURL // <--- Importante: Actualizamos la fuente de verdad
+                documents[index].status = .verified
+                
+                // 5. Gestión de Permisos (Opcional pero recomendado)
+                // Si el Security Scope estaba atado a la URL específica del archivo (y no la carpeta),
+                // necesitaríamos actualizar `securityAccessURLs`.
+                // Como ahora trabajamos con la CARPETA padre, el permiso sigue vigente para el nuevo archivo.
+                
+                // 6. Siguiente documento
+                selectNextPendingDocument()
+                
+            } catch {
+                print("❌ Error CRÍTICO al renombrar archivo: \(error.localizedDescription)")
+                // Aquí es donde sabremos si tenemos permisos de escritura reales.
+            }
         }
-    }
 
     private func selectNextPendingDocument() {
         if let next = documents.first(where: {
