@@ -23,13 +23,25 @@ struct DocumentDropModifier: ViewModifier {
                         .ignoresSafeArea()
                 }
             }
-            .dropDestination(for: URL.self) { items, location in
-                viewModel.addFiles(from: items)
-                return true
-            } isTargeted: { targeted in
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isTargeted = targeted
+            .onDrop(of: [.pdf, .folder], isTargeted: $isTargeted) { providers in
+
+                Task {
+                    var urls: [URL] = []
+
+                    for provider in providers {
+                        if let url = await provider.loadUrl() {
+                            urls.append(url)
+                        }
+                    }
+
+                    if !urls.isEmpty {
+                        await MainActor.run {
+                            viewModel.addFiles(from: urls)
+                        }
+                    }
                 }
+
+                return true
             }
     }
 }
@@ -37,5 +49,44 @@ struct DocumentDropModifier: ViewModifier {
 extension View {
     func withDocumentDropSupport(viewModel: WorkspaceViewModel) -> some View {
         self.modifier(DocumentDropModifier(viewModel: viewModel))
+    }
+}
+
+extension NSItemProvider {
+    fileprivate func loadUrl() async -> URL? {
+        return await withCheckedContinuation { continuation in
+            if hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+                loadItem(
+                    forTypeIdentifier: UTType.fileURL.identifier,
+                    options: nil
+                ) { (item, error) in
+                    if let data = item as? Data,
+                        let url = URL(dataRepresentation: data, relativeTo: nil)
+                    {
+                        continuation.resume(returning: url)
+                    } else if let url = item as? URL {
+                        continuation.resume(returning: url)
+                    } else {
+                        continuation.resume(returning: nil)
+                    }
+                }
+            }
+
+            else if hasItemConformingToTypeIdentifier(UTType.folder.identifier)
+            {
+                loadItem(
+                    forTypeIdentifier: UTType.folder.identifier,
+                    options: nil
+                ) { (item, error) in
+                    if let url = item as? URL {
+                        continuation.resume(returning: url)
+                    } else {
+                        continuation.resume(returning: nil)
+                    }
+                }
+            } else {
+                continuation.resume(returning: nil)
+            }
+        }
     }
 }

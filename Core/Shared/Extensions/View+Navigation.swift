@@ -19,7 +19,7 @@ struct WorkspaceBehaviorModifier: ViewModifier {
         content
             .fileImporter(
                 isPresented: $isFileImporterPresented,
-                allowedContentTypes: [.pdf],
+                allowedContentTypes: [.pdf, .folder],
                 allowsMultipleSelection: true,
                 onCompletion: onImport
             )
