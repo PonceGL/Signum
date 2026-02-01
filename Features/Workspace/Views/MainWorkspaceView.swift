@@ -98,31 +98,6 @@ struct MainWorkspaceView: View {
 
 extension MainWorkspaceView {
 
-    fileprivate var sidebar: some View {
-        WorkspaceSidebarContainer(viewModel: viewModel)
-    }
-
-    fileprivate var detail: some View {
-        WorkspaceDetailContainer(
-            viewModel: viewModel,
-            isFileImporterPresented: $isFileImporterPresented
-        )
-    }
-
-    fileprivate var inspectorContent: some View {
-        Group {
-            if let document = viewModel.selectedDocument {
-                DocumentInspectorView(document: document, viewModel: viewModel)
-            } else {
-                Text("Selecciona un archivo")
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-}
-
-extension MainWorkspaceView {
-
     @ViewBuilder
     fileprivate var sidebarView: some View {
         if !viewModel.documents.isEmpty {
@@ -133,6 +108,8 @@ extension MainWorkspaceView {
                     maxWidth: LayoutConfig.sideBarWidth.max,
                     maxHeight: .infinity
                 )
+        } else {
+            detailView
         }
     }
 
