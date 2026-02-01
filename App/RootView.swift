@@ -52,6 +52,7 @@ struct RootView: View {
             NavigationStack(path: $path) {
                 VStack(spacing: 20) {
                     Text("Pantalla de Inicio / Dashboard")
+                        .font(.title)
                     Button("Abrir Workspace Principal") {
                         path.append("workspace")
                     }

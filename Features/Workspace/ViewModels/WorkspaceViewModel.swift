@@ -191,12 +191,16 @@ class WorkspaceViewModel: ObservableObject {
             let currentURL = currentDoc.originalURL // La URL actual completa
             
             // 1. Limpieza del nombre (Básico)
-            // Eliminamos caracteres ilegales del sistema de archivos para evitar crashes
-            let safeName = newName.replacingOccurrences(of: "/", with: "-")
-                                  .replacingOccurrences(of: ":", with: "-")
+            var cleanName = newName
+                if cleanName.lowercased().hasSuffix(".pdf") {
+                    cleanName = String(cleanName.dropLast(4))
+                }
+            
+            let safeName = cleanName.replacingOccurrences(of: "/", with: "-")
+                                        .replacingOccurrences(of: ":", with: "-")
+                                        .trimmingCharacters(in: .whitespacesAndNewlines)
             
             // 2. Construir la nueva ruta
-            // Obtenemos la carpeta contenedora (sobre la cual ya deberíamos tener permisos gracias al fix anterior)
             let folderURL = currentURL.deletingLastPathComponent()
             // Agregamos el nuevo nombre y aseguramos la extensión PDF
             let newURL = folderURL.appendingPathComponent(safeName).appendingPathExtension("pdf")
@@ -210,7 +214,6 @@ class WorkspaceViewModel: ObservableObject {
                     return
                 }
                 
-                // ¡EL MOMENTO DE LA VERDAD! Intentamos mover (renombrar) el archivo.
                 try FileManager.default.moveItem(at: currentURL, to: newURL)
                 
                 print("✅ Archivo renombrado físicamente a: \(newURL.lastPathComponent)")
@@ -218,7 +221,7 @@ class WorkspaceViewModel: ObservableObject {
                 // 4. Actualizar el Modelo
                 // Es crucial actualizar la URL en el modelo, si no, la próxima vez apuntará al archivo viejo.
                 documents[index].userEditedName = safeName
-                documents[index].originalURL = newURL // <--- Importante: Actualizamos la fuente de verdad
+                documents[index].originalURL = newURL
                 documents[index].status = .verified
                 
                 // 5. Gestión de Permisos (Opcional pero recomendado)
