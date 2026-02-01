@@ -14,10 +14,21 @@ enum AppFeature: Hashable {
     case pdfTools
 }
 
+enum AppDestination: Identifiable {
+    case workspace
+    case history
+    case settings
+    case onboarding
+    case userProfile
+
+    var id: Self { self }
+}
+
 struct RootView: View {
-    @State private var activeFeature: AppFeature = .workspace
-    @State private var path = NavigationPath()
     @StateObject private var workspaceViewModel = WorkspaceViewModel()
+
+    @State private var activeDestination: AppDestination? = .workspace
+    @State private var activeFeature: AppDestination = .workspace
 
     var body: some View {
         #if os(macOS)
@@ -49,30 +60,58 @@ struct RootView: View {
             }
         #else
 
-            NavigationStack(path: $path) {
-                VStack(spacing: 20) {
-                    Text("Pantalla de Inicio / Dashboard")
-                        .font(.title)
-                    Button("Abrir Workspace Principal") {
-                        path.append("workspace")
+            MainWorkspaceView(
+                viewModel: workspaceViewModel,
+                onOpenSettings: { navigateTo(.settings) },
+                onOpenProfile: { navigateTo(.userProfile) }
+            )
+            .fullScreenCover(item: $activeDestination) { destination in
+                switch destination {
+                case .settings:
+                    NavigationStack {
+                        Placeholder(someText: "Vista de Ajustes")
+                            .toolbar {
+                                Button(action: {
+                                    navigateTo(nil)
+                                }) {
+                                    Label("Listo", systemImage: "xmark.circle")
+                                }
+                            }
                     }
-                }
-                .navigationDestination(for: String.self) { value in
-                    if value == "workspace" {
-                        MainWorkspaceView()
-                            .navigationBarHidden(true)
+
+                case .userProfile:
+                    NavigationStack {
+                        Placeholder(someText: "Perfil de Usuario")
+                            .navigationTitle("Mi Cuenta")
+                            .toolbar {
+                                Button(action: {
+                                    navigateTo(nil)
+                                }) {
+                                    Label("Listo", systemImage: "xmark.circle")
+                                }
+                            }
                     }
+
+                case .onboarding:
+                    Placeholder(someText: "Bienvenido")
                 }
             }
         #endif
+
+    }
+
+    private func navigateTo(_ destination: AppDestination?) {
+        activeDestination = destination
     }
 }
 
 struct Placeholder: View {
     var someText: String
     var body: some View {
-        Text(someText)
-            .font(.title)
+        VStack {
+            Text(someText)
+                .font(.title)
+        }
     }
 }
 

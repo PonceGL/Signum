@@ -19,15 +19,25 @@ struct LayoutConfig {
 @MainActor
 struct MainWorkspaceView: View {
     @StateObject var viewModel: WorkspaceViewModel
+    
+    var onOpenSettings: (() -> Void)? = nil
+    var onOpenProfile: (() -> Void)? = nil
+    
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @State private var columnVisibility: NavigationSplitViewVisibility =
         .detailOnly
     @State private var isInspectorPresented: Bool = true
     @State private var isFileImporterPresented: Bool = false
 
-    init(viewModel: WorkspaceViewModel? = nil) {
+    init(viewModel: WorkspaceViewModel? = nil,
+    onOpenSettings: (() -> Void)? = nil,
+         onOpenProfile: (() -> Void)? = nil
+    ) {
         let vm = viewModel ?? WorkspaceViewModel()
         _viewModel = StateObject(wrappedValue: vm)
+        self.onOpenSettings = onOpenSettings
+        self.onOpenProfile = onOpenProfile
     }
 
     var body: some View {
@@ -100,19 +110,14 @@ extension MainWorkspaceView {
 
     @ViewBuilder
     fileprivate var sidebarView: some View {
-        if !viewModel.documents.isEmpty {
-            WorkspaceSidebarContainer(viewModel: viewModel)
-                .frame(
-                    minWidth: LayoutConfig.sideBarWidth.min,
-                    idealWidth: LayoutConfig.sideBarWidth.ideal,
-                    maxWidth: LayoutConfig.sideBarWidth.max,
-                    maxHeight: .infinity
-                )
-        } else {
-            #if !os(macOS)
-                detailView
-            #endif
-        }
+        WorkspaceSidebarContainer(viewModel: viewModel, isFileImporterPresented: $isFileImporterPresented)
+            .frame(
+                minWidth: LayoutConfig.sideBarWidth.min,
+                idealWidth: LayoutConfig.sideBarWidth.ideal,
+                maxWidth: LayoutConfig.sideBarWidth.max,
+                maxHeight: .infinity
+            )
+        
     }
 
     @ViewBuilder
@@ -134,8 +139,8 @@ extension MainWorkspaceView {
                 viewModel: viewModel,
                 isInspectorPresented: $isInspectorPresented,
                 onUndo: { print("Undo tap") },
-                onShare: { print("Share tap") },
-                onMore: { print("More tap") }
+                onShare: onOpenProfile,
+                onSettings: onOpenSettings
             )
         }
     }

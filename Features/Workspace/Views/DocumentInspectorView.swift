@@ -26,7 +26,7 @@ struct DocumentInspectorView: View {
 
                 TextField("Nombre del archivo", text: $editedName)
                     .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 16, design: .monospaced))  // Monospaced para facilitar lectura de expedientes
+                    .font(.system(size: 16, design: .monospaced))
                     #if os(iOS)
                         .textInputAutocapitalization(.characters)
                     #endif
