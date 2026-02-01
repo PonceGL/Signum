@@ -36,13 +36,22 @@ struct PDFKitView: ViewRepresentable {
         pdfView.displayDirection = .vertical
         pdfView.maxScaleFactor = 4.0
         pdfView.minScaleFactor = 0.5
-        pdfView.backgroundColor = .clear
+        
+        #if os(macOS)
+        pdfView.backgroundColor = .controlBackgroundColor
+        #else
+        pdfView.backgroundColor = .systemBackground
+        #endif
+        
         return pdfView
     }
 
     private func updateBaseView(_ pdfView: PDFView) {
         if pdfView.document?.documentURL != document?.documentURL {
-            pdfView.document = document
+            
+            DispatchQueue.main.async {
+                pdfView.document = document
+            }
         }
     }
 }

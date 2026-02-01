@@ -62,7 +62,7 @@ struct DocumentInspectorView: View {
             Spacer()
 
             Button(action: {
-                viewModel.verifyDocument(id: document.id, newName: editedName)
+                viewModel.finalizeAndRenameDocument(id: document.id, newName: editedName)
             }) {
                 HStack {
                     Spacer()

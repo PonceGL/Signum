@@ -22,7 +22,7 @@ struct LegalDocument: Identifiable, Hashable {
     let id: UUID
 
     // --- Datos de Archivo ---
-    let originalURL: URL
+    var originalURL: URL
     let originalFileName: String
 
     // --- Estado del Flujo ---

@@ -31,223 +31,47 @@ struct MainWorkspaceView: View {
     }
 
     var body: some View {
-        #if os(macOS)
-            HSplitView {
-                if !viewModel.documents.isEmpty {
-                    WorkspaceSidebarContainer(viewModel: viewModel)
-                        .frame(
-                            minWidth: 320,
-                            idealWidth: 400,
-                            maxWidth: 500,
-                            maxHeight: .infinity
-                        )
-                }
+        Group {
+            #if os(macOS)
+                HSplitView {
+                    sidebarView
 
-                WorkspaceDetailContainer(
-                    viewModel: viewModel,
-                    isFileImporterPresented: $isFileImporterPresented
-                )
-                .frame(
-                    minWidth: LayoutConfig.mainContentWidth.min,
-                    idealWidth: LayoutConfig.mainContentWidth.ideal,
-                    maxWidth: LayoutConfig.mainContentWidth.max,
-                    maxHeight: .infinity
-                )
-                .navigationTitle("")
-                .toolbarRole(.editor)
-                .toolbar {
-                    workspaceToolbar
-                }
+                    detailView
 
-                if let document = viewModel.selectedDocument {
-                    Group {
-                        if let document = viewModel.selectedDocument {
-                            DocumentInspectorView(
-                                document: document,
-                                viewModel: viewModel
-                            )
-                        } else {
-                            Text("Selecciona un archivo")
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .frame(
-                        minWidth: 320,
-                        idealWidth: 400,
-                        maxWidth: 500,
-                        maxHeight: .infinity
-                    )
-                }
-
-            }
-            .fileImporter(
-                isPresented: $isFileImporterPresented,
-                allowedContentTypes: [.pdf],
-                allowsMultipleSelection: true
-            ) { result in
-                handleImport(result: result)
-            }
-            .animation(
-                .spring(response: 0.4, dampingFraction: 0.8),
-                value: columnVisibility
-            )
-            .onSignumChange(of: viewModel.documents.count) { _, newValue in
-                let isEmpty = (newValue == 0)
-
-                Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 100_000_000)
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8))
+                    if isInspectorPresented && viewModel.selectedDocument != nil
                     {
-                        updateColumnVisibility(isEmpty: isEmpty)
+                        inspectorView
                     }
                 }
-            }
-            .onAppear {
-                updateColumnVisibility(isEmpty: viewModel.documents.isEmpty)
-            }
-
-        #else
-            NavigationSplitView(columnVisibility: $columnVisibility) {
-                WorkspaceSidebarContainer(viewModel: viewModel)
-                    .navigationSplitViewColumnWidth(
-                        min: LayoutConfig.sideBarWidth.min,
-                        ideal: LayoutConfig.sideBarWidth.ideal,
-                        max: LayoutConfig.sideBarWidth.max
-                    )
-            } detail: {
-                WorkspaceDetailContainer(
-                    viewModel: viewModel,
-                    isFileImporterPresented: $isFileImporterPresented
-                )
-                .navigationTitle("")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbarRole(.editor)
-                .toolbar {
-                    workspaceToolbar
-                }
-
-            }
-            .inspector(isPresented: inspectorBinding) {
-                Group {
-                    if let document = viewModel.selectedDocument {
-                        DocumentInspectorView(
-                            document: document,
-                            viewModel: viewModel
+            #else
+                NavigationSplitView(columnVisibility: $columnVisibility) {
+                    sidebarView
+                        .navigationSplitViewColumnWidth(
+                            min: LayoutConfig.sideBarWidth.min,
+                            ideal: LayoutConfig.sideBarWidth.ideal,
+                            max: LayoutConfig.sideBarWidth.max
                         )
-                    } else {
-                        Text("Selecciona un archivo")
-                            .foregroundColor(.secondary)
-                    }
+                } detail: {
+                    detailView
                 }
-                .navigationSplitViewColumnWidth(
-                    min: LayoutConfig.sideBarWidth.min,
-                    ideal: LayoutConfig.sideBarWidth.ideal,
-                    max: LayoutConfig.sideBarWidth.max
-                )
-            }
-            .navigationSplitViewStyle(.balanced)
-            .fileImporter(
-                isPresented: $isFileImporterPresented,
-                allowedContentTypes: [.pdf],
-                allowsMultipleSelection: true
-            ) { result in
-                handleImport(result: result)
-            }
-            .animation(
-                .spring(response: 0.4, dampingFraction: 0.8),
-                value: columnVisibility
-            )
-            .onSignumChange(of: viewModel.documents.count) { _, newValue in
-                let isEmpty = (newValue == 0)
-
-                Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 100_000_000)
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8))
-                    {
-                        updateColumnVisibility(isEmpty: isEmpty)
-                    }
-                }
-            }
-            .onAppear {
-                updateColumnVisibility(isEmpty: viewModel.documents.isEmpty)
-            }
-        #endif
-
-    }
-
-    @ToolbarContentBuilder
-    private var workspaceToolbar: some ToolbarContent {
-        if !viewModel.documents.isEmpty {
-            ToolbarItem(placement: .principal) { Spacer() }
-            ToolbarItemGroup(placement: .primaryAction) {
-                ControlGroup {
-
-                    Button {
-                        // TODO:
-                    } label: {
-
-                        Label(
-
-                            "Undo",
-
-                            systemImage: "arrow.uturn.backward"
-
+                .inspector(isPresented: inspectorBinding) {
+                    inspectorView
+                        .navigationSplitViewColumnWidth(
+                            min: LayoutConfig.sideBarWidth.min,
+                            ideal: LayoutConfig.sideBarWidth.ideal,
+                            max: LayoutConfig.sideBarWidth.max
                         )
-
-                    }
-
-                    Button {
-                        // TODO:
-                    } label: {
-
-                        Label(
-
-                            "Share",
-
-                            systemImage: "square.and.arrow.up"
-
-                        )
-
-                    }
-
-                    Button {
-                        // TODO:
-                    } label: {
-
-                        Label("More", systemImage: "ellipsis.circle")
-
-                    }
-
                 }
-
-            }
-            
-            #if !os(macOS)
-                ToolbarItem(placement: .primaryAction) {
-
-                    Button {
-
-                        withAnimation(
-
-                            .spring(response: 0.5, dampingFraction: 0.8)
-
-                        ) {
-
-                            isInspectorPresented.toggle()
-
-                        }
-
-                    } label: {
-
-                        Label("Edit", systemImage: "sidebar.right")
-
-                    }
-
-                }
+                .navigationSplitViewStyle(.balanced)
             #endif
         }
+        .applyWorkspaceBehavior(
+            viewModel: viewModel,
+            columnVisibility: $columnVisibility,
+            isFileImporterPresented: $isFileImporterPresented,
+            onImport: handleImport
+        )
     }
-
     private var inspectorBinding: Binding<Bool> {
         Binding(
             get: {
@@ -258,12 +82,6 @@ struct MainWorkspaceView: View {
         )
     }
 
-    private func updateColumnVisibility(isEmpty: Bool) {
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-            columnVisibility = isEmpty ? .detailOnly : .all
-        }
-    }
-
     private func handleImport(result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
@@ -272,7 +90,73 @@ struct MainWorkspaceView: View {
             print(
                 "Error al seleccionar archivos: \(error.localizedDescription)"
             )
+            viewModel.importErrorMessage =
+                "Error de sistema al seleccionar archivos: \(error.localizedDescription)"
         }
+    }
+}
+
+extension MainWorkspaceView {
+
+    @ViewBuilder
+    fileprivate var sidebarView: some View {
+        if !viewModel.documents.isEmpty {
+            WorkspaceSidebarContainer(viewModel: viewModel)
+                .frame(
+                    minWidth: LayoutConfig.sideBarWidth.min,
+                    idealWidth: LayoutConfig.sideBarWidth.ideal,
+                    maxWidth: LayoutConfig.sideBarWidth.max,
+                    maxHeight: .infinity
+                )
+        } else {
+            detailView
+        }
+    }
+
+    @ViewBuilder
+    fileprivate var detailView: some View {
+        WorkspaceDetailContainer(
+            viewModel: viewModel,
+            isFileImporterPresented: $isFileImporterPresented
+        )
+        .frame(
+            minWidth: LayoutConfig.mainContentWidth.min,
+            idealWidth: LayoutConfig.mainContentWidth.ideal,
+            maxWidth: LayoutConfig.mainContentWidth.max,
+            maxHeight: .infinity
+        )
+        .navigationTitle("")
+        .toolbarRole(.editor)
+        .toolbar {
+            WorkspaceToolbar(
+                viewModel: viewModel,
+                isInspectorPresented: $isInspectorPresented,
+                onUndo: { print("Undo tap") },
+                onShare: { print("Share tap") },
+                onMore: { print("More tap") }
+            )
+        }
+    }
+
+    @ViewBuilder
+    fileprivate var inspectorView: some View {
+        Group {
+            if let document = viewModel.selectedDocument {
+                DocumentInspectorView(
+                    document: document,
+                    viewModel: viewModel
+                )
+            } else {
+                Text("Selecciona un archivo")
+                    .foregroundColor(.secondary)
+            }
+        }
+        .frame(
+            minWidth: LayoutConfig.sideBarWidth.min,
+            idealWidth: LayoutConfig.sideBarWidth.ideal,
+            maxWidth: LayoutConfig.sideBarWidth.max,
+            maxHeight: .infinity
+        )
     }
 }
 
@@ -282,7 +166,6 @@ struct MainWorkspaceView: View {
 
 #Preview("Con Archivo Seleccionado") {
     let vm = WorkspaceViewModel()
-    // Agregamos el mock a la lista
     vm.documents = [.mock]
     vm.selectedDocumentID = vm.documents.first?.id
 

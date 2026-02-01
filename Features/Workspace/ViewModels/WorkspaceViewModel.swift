@@ -12,59 +12,142 @@ import UniformTypeIdentifiers
 
 @MainActor
 class WorkspaceViewModel: ObservableObject {
+    // MARK: - Published Properties
     @Published var documents: [LegalDocument] = []
     @Published var selectedDocumentID: UUID?
+
+    // Estados de proceso (IA)
     @Published var isProcessing: Bool = false
     @Published var totalProgress: Double = 0.0
 
+    // Estados de Importación (UI Feedback)
+    @Published var isImporting: Bool = false
+    @Published var importErrorMessage: String?
+
+    // MARK: - Dependencies & Private Storage
+    private let importService: FileImporting
     private var securityAccessURLs: Set<URL> = []
 
-    // Propiedad computada para obtener el documento seleccionado
+    // MARK: - Computed Properties
     var selectedDocument: LegalDocument? {
         documents.first { $0.id == selectedDocumentID }
     }
 
-    /// Agrega archivos al espacio de trabajo validando el tipo y los permisos.
-    /// - Parameter urls: Arreglo de URLs provenientes del selector o Drag & Drop.
+    // MARK: - Initialization
+    /// Inicializador con inyección de dependencias.
+    /// Usamos 'nil' por defecto para evitar warnings de aislamiento de actores en el parámetro.
+    init(importService: FileImporting? = nil) {
+        // Si no se inyecta nada (producción), usamos el singleton compartido.
+        self.importService = importService ?? FileImportService.shared
+    }
+
+    // MARK: - File Management
+
+    /// Agrega archivos al espacio de trabajo de forma asíncrona.
+    /// Maneja carpetas y archivos individuales sin bloquear la UI.
     func addFiles(from urls: [URL]) {
-        for url in urls {
-            // 1. Validación Robusta (UTType)
-            guard
-                let resourceValues = try? url.resourceValues(forKeys: [
-                    .contentTypeKey
-                ]),
-                let contentType = resourceValues.contentType,
-                contentType.conforms(to: .pdf)
-            else { continue }
+        guard !isImporting else { return }
 
-            // 2. Manejo de Seguridad
-            if url.startAccessingSecurityScopedResource() {
-                securityAccessURLs.insert(url)
-            }
+        // 1. Activamos estado de carga (bloqueo de interacción o spinner)
+        isImporting = true
+        importErrorMessage = nil
 
-            if !documents.contains(where: { $0.originalURL == url }) {
-                let newDoc = LegalDocument(url: url)
-                documents.append(newDoc)
+        Task {
+            // 2. Delegamos el trabajo pesado al servicio (Background Actor)
+            let result = await importService.processImport(from: urls)
 
-                if documents.count == 1 {
-                    selectedDocumentID = newDoc.id
-                }
-            }
+            // 3. Volvemos al MainActor para actualizar la UI
+            handleImportResults(result)
+
+            // 4. Finalizamos estado de carga con una pequeña animación/delay si es necesario
+            try? await Task.sleep(nanoseconds: 200_000_000)  // 0.2s para suavidad visual
+            isImporting = false
         }
     }
 
+    /// Procesa los resultados del servicio y actualiza el estado local.
+    private func handleImportResults(_ results: (successes: [ImportResult], failures: [URL: FileImportError])) {
+            var newDocumentsCount = 0
+            
+            // Set temporal para rastrear qué orígenes (carpetas) ya intentamos abrir en este lote.
+            // Esto evita el spam de "❌ Error al obtener acceso seguro" repetido por cada archivo de la misma carpeta.
+            var processedSources: Set<URL> = []
+            
+            // 1. Procesar Éxitos
+            for item in results.successes {
+                
+                // LOGICA DE SEGURIDAD OPTIMIZADA
+                // Solo intentamos acceder si no lo hemos procesado en este lote Y no lo tenemos ya guardado
+                if !processedSources.contains(item.originalSource) && !securityAccessURLs.contains(item.originalSource) {
+                    
+                    // Marcamos como procesado para no reintentar en la siguiente vuelta del bucle
+                    processedSources.insert(item.originalSource)
+                    
+                    if item.originalSource.startAccessingSecurityScopedResource() {
+                        securityAccessURLs.insert(item.originalSource)
+                        print("🔐 Acceso seguro garantizado para: \(item.originalSource.lastPathComponent)")
+                    } else {
+                        // Si falla, es probable que sea un Drag&Drop que no requiere/soporta este scope explícito.
+                        // Lo dejamos pasar silenciosamente (o con un solo log informativo) en lugar de un error rojo.
+                        print("ℹ️ Nota: Acceso explícito no requerido para: \(item.originalSource.lastPathComponent)")
+                    }
+                }
+                
+                // Evitar duplicados en la lista visual
+                if !documents.contains(where: { $0.originalURL == item.url }) {
+                    let newDoc = LegalDocument(url: item.url)
+                    documents.append(newDoc)
+                    newDocumentsCount += 1
+                }
+            }
+            
+            // 2. Selección automática (Con Delay para estabilidad de UI)
+            let shouldSelectFirst = (selectedDocumentID == nil)
+            let firstDocID = documents.first?.id
+            
+            if shouldSelectFirst, let firstID = firstDocID {
+                Task { @MainActor in
+                    // Delay táctico de 0.2s para esperar a las animaciones de la UI
+                    try? await Task.sleep(nanoseconds: 200_000_000)
+                    
+                    if documents.contains(where: { $0.id == firstID }) {
+                        self.selectedDocumentID = firstID
+                    }
+                }
+            }
+            
+            // 3. Gestión de Errores
+            if !results.failures.isEmpty {
+                let failureCount = results.failures.count
+                let firstErrorDescription = results.failures.values.first?.localizedDescription ?? "Error desconocido"
+                
+                if failureCount == 1 {
+                    importErrorMessage = "No se pudo importar un archivo: \(firstErrorDescription)"
+                } else {
+                    importErrorMessage = "Se importaron \(newDocumentsCount) archivos, pero \(failureCount) fallaron. Ejemplo: \(firstErrorDescription)"
+                }
+                print("⚠️ Reporte de Importación: \(importErrorMessage ?? "")")
+            } else if newDocumentsCount > 0 {
+                importErrorMessage = nil
+                print("✅ Importación exitosa de \(newDocumentsCount) archivos.")
+            }
+        }
+
     func removeDocument(_ document: LegalDocument) {
         documents.removeAll { $0.id == document.id }
+
+        // Limpiamos referencias al documento seleccionado si lo borramos
+        if selectedDocumentID == document.id {
+            selectedDocumentID = nil
+        }
+
+        // Liberamos el recurso de seguridad
         if let accessURL = securityAccessURLs.remove(document.originalURL) {
             accessURL.stopAccessingSecurityScopedResource()
         }
     }
 
-    deinit {
-        for url in securityAccessURLs {
-            url.stopAccessingSecurityScopedResource()
-        }
-    }
+    // MARK: - Business Logic (Processing & Verification)
 
     /// Inicia el proceso de análisis por lotes (IA Pipeline).
     func startBatchProcessing() async {
@@ -74,7 +157,6 @@ class WorkspaceViewModel: ObservableObject {
         totalProgress = 0.0
 
         for index in documents.indices {
-            // Solo procesamos los que están pendientes o con error
             guard
                 documents[index].status == .pending
                     || documents[index].status == .error
@@ -84,16 +166,13 @@ class WorkspaceViewModel: ObservableObject {
 
             documents[index].status = .analyzing
 
-            // --- Simulación del Pipeline (OCR + TinyML) ---
-            // Aquí irá la llamada al motor nativo en el siguiente paso
-            try? await Task.sleep(nanoseconds: 1_000_000_000)  // 1 seg de delay
+            // --- Simulación del Pipeline ---
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
 
-            // Actualizamos con datos de prueba
-            documents[index].docType = "JUICIO DE AMPARO"
+            documents[index].docType = "DOC DE PRUEBA"
             documents[index].expediente = "123/2024"
             documents[index].status = .needsReview
 
-            // Actualizar progreso global
             totalProgress = Double(index + 1) / Double(documents.count)
         }
 
@@ -101,15 +180,63 @@ class WorkspaceViewModel: ObservableObject {
     }
 
     /// Actualiza el nombre editado por el usuario y marca como verificado.
-    func verifyDocument(id: UUID, newName: String) {
-        if let index = documents.firstIndex(where: { $0.id == id }) {
-            documents[index].userEditedName = newName
-            documents[index].status = .verified
-
-            // Lógica de "Cascada": Saltar al siguiente pendiente
-            selectNextPendingDocument()
+    /// Renombra el archivo físico en disco y actualiza el modelo.
+        /// - Parameters:
+        ///   - id: ID del documento a procesar.
+        ///   - newName: El nuevo nombre ingresado por el usuario (sin extensión).
+        func finalizeAndRenameDocument(id: UUID, newName: String) {
+            guard let index = documents.firstIndex(where: { $0.id == id }) else { return }
+            
+            let currentDoc = documents[index]
+            let currentURL = currentDoc.originalURL // La URL actual completa
+            
+            // 1. Limpieza del nombre (Básico)
+            var cleanName = newName
+                if cleanName.lowercased().hasSuffix(".pdf") {
+                    cleanName = String(cleanName.dropLast(4))
+                }
+            
+            let safeName = cleanName.replacingOccurrences(of: "/", with: "-")
+                                        .replacingOccurrences(of: ":", with: "-")
+                                        .trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // 2. Construir la nueva ruta
+            let folderURL = currentURL.deletingLastPathComponent()
+            // Agregamos el nuevo nombre y aseguramos la extensión PDF
+            let newURL = folderURL.appendingPathComponent(safeName).appendingPathExtension("pdf")
+            
+            // 3. Renombrado Físico (FileManager)
+            do {
+                // Verificamos si ya existe un archivo con ese nombre para no sobrescribirlo
+                if FileManager.default.fileExists(atPath: newURL.path) {
+                    print("⚠️ Error: Ya existe un archivo con el nombre '\(safeName)' en esta carpeta.")
+                    // Aquí podrías lanzar una alerta al usuario, por ahora solo retornamos
+                    return
+                }
+                
+                try FileManager.default.moveItem(at: currentURL, to: newURL)
+                
+                print("✅ Archivo renombrado físicamente a: \(newURL.lastPathComponent)")
+                
+                // 4. Actualizar el Modelo
+                // Es crucial actualizar la URL en el modelo, si no, la próxima vez apuntará al archivo viejo.
+                documents[index].userEditedName = safeName
+                documents[index].originalURL = newURL
+                documents[index].status = .verified
+                
+                // 5. Gestión de Permisos (Opcional pero recomendado)
+                // Si el Security Scope estaba atado a la URL específica del archivo (y no la carpeta),
+                // necesitaríamos actualizar `securityAccessURLs`.
+                // Como ahora trabajamos con la CARPETA padre, el permiso sigue vigente para el nuevo archivo.
+                
+                // 6. Siguiente documento
+                selectNextPendingDocument()
+                
+            } catch {
+                print("❌ Error CRÍTICO al renombrar archivo: \(error.localizedDescription)")
+                // Aquí es donde sabremos si tenemos permisos de escritura reales.
+            }
         }
-    }
 
     private func selectNextPendingDocument() {
         if let next = documents.first(where: {
@@ -120,8 +247,31 @@ class WorkspaceViewModel: ObservableObject {
     }
 
     func clearWorkspace() {
-        documents.removeAll()
+        // PASO 1: Deseleccionar primero.
         selectedDocumentID = nil
+
+        // PASO 2: Liberar recursos de seguridad
+        for url in securityAccessURLs {
+            url.stopAccessingSecurityScopedResource()
+        }
+        securityAccessURLs.removeAll()
+
+        // PASO 3: Ahora sí, destruir los datos
+        documents.removeAll(keepingCapacity: false)
+
+        // PASO 4: Resetear estados auxiliares
         totalProgress = 0.0
+        importErrorMessage = nil
+        isImporting = false
+        isProcessing = false
+
+        print("🧹 Workspace limpiado correctamente.")
+    }
+
+    // MARK: - Deinit
+    deinit {
+        for url in securityAccessURLs {
+            url.stopAccessingSecurityScopedResource()
+        }
     }
 }
