@@ -109,7 +109,9 @@ extension MainWorkspaceView {
                     maxHeight: .infinity
                 )
         } else {
-            detailView
+            #if !os(macOS)
+                detailView
+            #endif
         }
     }
 
