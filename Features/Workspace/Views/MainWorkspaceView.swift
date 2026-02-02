@@ -19,10 +19,10 @@ struct LayoutConfig {
 @MainActor
 struct MainWorkspaceView: View {
     @StateObject var viewModel: WorkspaceViewModel
-    
-    var onOpenSettings: (() -> Void)? = nil
+
+    var onPdfTools: (() -> Void)? = nil
     var onOpenProfile: (() -> Void)? = nil
-    
+
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @State private var columnVisibility: NavigationSplitViewVisibility =
@@ -30,13 +30,14 @@ struct MainWorkspaceView: View {
     @State private var isInspectorPresented: Bool = true
     @State private var isFileImporterPresented: Bool = false
 
-    init(viewModel: WorkspaceViewModel? = nil,
-    onOpenSettings: (() -> Void)? = nil,
-         onOpenProfile: (() -> Void)? = nil
+    init(
+        viewModel: WorkspaceViewModel? = nil,
+        onPdfTools: (() -> Void)? = nil,
+        onOpenProfile: (() -> Void)? = nil
     ) {
         let vm = viewModel ?? WorkspaceViewModel()
         _viewModel = StateObject(wrappedValue: vm)
-        self.onOpenSettings = onOpenSettings
+        self.onPdfTools = onPdfTools
         self.onOpenProfile = onOpenProfile
     }
 
@@ -44,7 +45,9 @@ struct MainWorkspaceView: View {
         Group {
             #if os(macOS)
                 HSplitView {
-                    sidebarView
+                    if !viewModel.documents.isEmpty {
+                        sidebarView
+                    }
 
                     detailView
 
@@ -110,14 +113,17 @@ extension MainWorkspaceView {
 
     @ViewBuilder
     fileprivate var sidebarView: some View {
-        WorkspaceSidebarContainer(viewModel: viewModel, isFileImporterPresented: $isFileImporterPresented)
-            .frame(
-                minWidth: LayoutConfig.sideBarWidth.min,
-                idealWidth: LayoutConfig.sideBarWidth.ideal,
-                maxWidth: LayoutConfig.sideBarWidth.max,
-                maxHeight: .infinity
-            )
-        
+        WorkspaceSidebarContainer(
+            viewModel: viewModel,
+            isFileImporterPresented: $isFileImporterPresented
+        )
+        .frame(
+            minWidth: LayoutConfig.sideBarWidth.min,
+            idealWidth: LayoutConfig.sideBarWidth.ideal,
+            maxWidth: LayoutConfig.sideBarWidth.max,
+            maxHeight: .infinity
+        )
+
     }
 
     @ViewBuilder
@@ -138,9 +144,8 @@ extension MainWorkspaceView {
             WorkspaceToolbar(
                 viewModel: viewModel,
                 isInspectorPresented: $isInspectorPresented,
-                onUndo: { print("Undo tap") },
                 onShare: onOpenProfile,
-                onSettings: onOpenSettings
+                onPdfTools: onPdfTools
             )
         }
     }

@@ -13,7 +13,6 @@ struct PDFPreviewView: View {
 
     // TODO: Implementar un Coordinador para controlar el nivel de zoom de forma programática
 
-    // Cargamos el PDFDocument de forma perezosa
     private var pdfDocument: PDFDocument? {
         PDFDocument(url: document.originalURL)
     }
@@ -27,24 +26,25 @@ struct PDFPreviewView: View {
 
             PDFKitView(document: pdfDocument).edgesIgnoringSafeArea(.all)
 
-            // Controles de Zoom
-            VStack {
-                Button(action: { /* TODO: Lógica de Zoom + */  }) {
-                    Image(systemName: "plus.magnifyingglass")
-                        .padding(8)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                }
+            #if os(macOS)
+                VStack {
+                    Button(action: { /* TODO: Lógica de Zoom + */  }) {
+                        Image(systemName: "plus.magnifyingglass")
+                            .padding(8)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                    }
 
-                Button(action: { /* TODO: Lógica de Zoom - */  }) {
-                    Image(systemName: "minus.magnifyingglass")
-                        .padding(8)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
+                    Button(action: { /* TODO: Lógica de Zoom - */  }) {
+                        Image(systemName: "minus.magnifyingglass")
+                            .padding(8)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                    }
                 }
-            }
-            .padding()
-            .buttonStyle(.plain)
+                .padding()
+                .buttonStyle(.plain)
+            #endif
         }
     }
 }

@@ -15,7 +15,7 @@ struct WorkspaceToolbar: ToolbarContent {
 
     var onUndo: (() -> Void)? = nil
     var onShare: (() -> Void)? = nil
-    var onSettings: (() -> Void)? = nil
+    var onPdfTools: (() -> Void)? = nil
 
     var body: some ToolbarContent {
         if !viewModel.documents.isEmpty {
@@ -36,8 +36,8 @@ struct WorkspaceToolbar: ToolbarContent {
                         }
                     }
 
-                    if let onSettings = onSettings {
-                        Button(action: onSettings) {
+                    if let onPdfTools = onPdfTools {
+                        Button(action: onPdfTools) {
                             Label("Settings", systemImage: "gear")
                         }
                     }
