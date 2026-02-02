@@ -11,11 +11,13 @@ struct WorkspaceSidebarContainer: View {
     @ObservedObject var viewModel: WorkspaceViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Binding var isFileImporterPresented: Bool
+    
+    var onHistory: (() -> Void)? = nil
 
     var body: some View {
         Group {
             if !viewModel.documents.isEmpty {
-                WorkspaceSidebarView(viewModel: viewModel)
+                WorkspaceSidebarView(viewModel: viewModel, onHistory: onHistory)
             } else {
                 SignumEmptyStateView(
                     title: "Mesa Vacía",

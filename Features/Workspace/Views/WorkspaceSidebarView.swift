@@ -10,6 +10,8 @@ import SwiftUI
 struct WorkspaceSidebarView: View {
     @ObservedObject var viewModel: WorkspaceViewModel
 
+    var onHistory: (() -> Void)? = nil
+
     var body: some View {
         VStack(spacing: 0) {
             List(viewModel.documents, selection: $viewModel.selectedDocumentID)
@@ -59,6 +61,24 @@ struct WorkspaceSidebarView: View {
                 .padding()
             }
             .background(Color.signumSecondaryBackground)
+        }
+        .toolbar {
+            if !viewModel.documents.isEmpty {
+                ToolbarItemGroup(placement: .navigationBarLeading) {
+                    ControlGroup {
+                        if let onHistory = onHistory {
+                            Button(action: onHistory) {
+                                Label(
+                                    AppRoute.history.title,
+                                    systemImage: AppRoute.history.iconName
+                                )
+                            }
+
+                        }
+
+                    }
+                }
+            }
         }
     }
 }

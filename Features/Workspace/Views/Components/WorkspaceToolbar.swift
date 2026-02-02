@@ -10,11 +10,10 @@ import SwiftUI
 struct WorkspaceToolbar: ToolbarContent {
     @ObservedObject var viewModel: WorkspaceViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    
+
     @Binding var isInspectorPresented: Bool
 
-    var onUndo: (() -> Void)? = nil
-    var onShare: (() -> Void)? = nil
+    var onOpenProfile: (() -> Void)? = nil
     var onPdfTools: (() -> Void)? = nil
 
     var body: some ToolbarContent {
@@ -23,22 +22,22 @@ struct WorkspaceToolbar: ToolbarContent {
 
             ToolbarItemGroup(placement: .primaryAction) {
                 ControlGroup {
-                    if let onUndo = onUndo {
-                        Button(action: onUndo) {
-                            Label("Undo", systemImage: "arrow.uturn.backward")
-                        }
-                        
-                    }
-                    
-                    if let onShare = onShare {
-                        Button(action: onShare) {
-                            Label("Profile", systemImage: "person.crop.circle")
-                        }
-                    }
 
                     if let onPdfTools = onPdfTools {
                         Button(action: onPdfTools) {
-                            Label("Settings", systemImage: "gear")
+                            Label(
+                                AppRoute.pdfTools.title,
+                                systemImage: AppRoute.pdfTools.iconName
+                            )
+                        }
+                    }
+
+                    if let onOpenProfile = onOpenProfile {
+                        Button(action: onOpenProfile) {
+                            Label(
+                                AppRoute.userProfile.title,
+                                systemImage: AppRoute.userProfile.iconName
+                            )
                         }
                     }
 
@@ -54,7 +53,11 @@ struct WorkspaceToolbar: ToolbarContent {
                             isInspectorPresented.toggle()
                         }
                     } label: {
-                        Label("Edit", systemImage: horizontalSizeClass == .compact ? "pencil" : "sidebar.right")
+                        Label(
+                            "Edit",
+                            systemImage: horizontalSizeClass == .compact
+                                ? "pencil" : "sidebar.right"
+                        )
                     }
                 }
             #endif

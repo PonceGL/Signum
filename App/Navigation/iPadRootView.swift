@@ -16,6 +16,7 @@ struct iPadRootView: View {
         #if os(iOS)
             MainWorkspaceView(
                 viewModel: viewModel,
+                onHistory: {print("on History")},
                 onPdfTools: { navigateTo(.pdfTools) },
                 onOpenProfile: { navigateTo(.userProfile) }
             )

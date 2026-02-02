@@ -20,6 +20,7 @@ struct LayoutConfig {
 struct MainWorkspaceView: View {
     @StateObject var viewModel: WorkspaceViewModel
 
+    var onHistory: (() -> Void)? = nil
     var onPdfTools: (() -> Void)? = nil
     var onOpenProfile: (() -> Void)? = nil
 
@@ -32,11 +33,13 @@ struct MainWorkspaceView: View {
 
     init(
         viewModel: WorkspaceViewModel? = nil,
+        onHistory: (() -> Void)? = nil,
         onPdfTools: (() -> Void)? = nil,
         onOpenProfile: (() -> Void)? = nil
     ) {
         let vm = viewModel ?? WorkspaceViewModel()
         _viewModel = StateObject(wrappedValue: vm)
+        self.onHistory = onHistory
         self.onPdfTools = onPdfTools
         self.onOpenProfile = onOpenProfile
     }
@@ -115,7 +118,8 @@ extension MainWorkspaceView {
     fileprivate var sidebarView: some View {
         WorkspaceSidebarContainer(
             viewModel: viewModel,
-            isFileImporterPresented: $isFileImporterPresented
+            isFileImporterPresented: $isFileImporterPresented,
+            onHistory: onHistory,
         )
         .frame(
             minWidth: LayoutConfig.sideBarWidth.min,
@@ -144,7 +148,7 @@ extension MainWorkspaceView {
             WorkspaceToolbar(
                 viewModel: viewModel,
                 isInspectorPresented: $isInspectorPresented,
-                onShare: onOpenProfile,
+                onOpenProfile: onOpenProfile,
                 onPdfTools: onPdfTools
             )
         }
