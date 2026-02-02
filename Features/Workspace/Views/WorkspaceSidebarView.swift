@@ -63,22 +63,24 @@ struct WorkspaceSidebarView: View {
             .background(Color.signumSecondaryBackground)
         }
         .toolbar {
-            if !viewModel.documents.isEmpty {
-                ToolbarItemGroup(placement: .navigationBarLeading) {
-                    ControlGroup {
-                        if let onHistory = onHistory {
-                            Button(action: onHistory) {
-                                Label(
-                                    AppRoute.history.title,
-                                    systemImage: AppRoute.history.iconName
-                                )
+            #if !os(macOS)
+                if !viewModel.documents.isEmpty {
+                    ToolbarItemGroup(placement: .navigationBarLeading) {
+                        ControlGroup {
+                            if let onHistory = onHistory {
+                                Button(action: onHistory) {
+                                    Label(
+                                        AppRoute.history.title,
+                                        systemImage: AppRoute.history.iconName
+                                    )
+                                }
+
                             }
 
                         }
-
                     }
                 }
-            }
+            #endif
         }
     }
 }

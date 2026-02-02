@@ -45,19 +45,20 @@ struct WorkspaceToolbar: ToolbarContent {
             }
 
             #if !os(macOS)
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        withAnimation(
-                            .spring(response: 0.5, dampingFraction: 0.8)
-                        ) {
-                            isInspectorPresented.toggle()
+                if horizontalSizeClass != .compact {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            withAnimation(
+                                .spring(response: 0.5, dampingFraction: 0.8)
+                            ) {
+                                isInspectorPresented.toggle()
+                            }
+                        } label: {
+                            Label(
+                                "Edit",
+                                systemImage: "sidebar.right"
+                            )
                         }
-                    } label: {
-                        Label(
-                            "Edit",
-                            systemImage: horizontalSizeClass == .compact
-                                ? "pencil" : "sidebar.right"
-                        )
                     }
                 }
             #endif

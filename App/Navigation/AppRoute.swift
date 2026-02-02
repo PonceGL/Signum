@@ -20,7 +20,7 @@ enum AppRoute: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .scanner: return "Nuevo Escaneo"
-        case .pdfTools: return "Historial"
+        case .pdfTools: return "Utilidad de PDF"
         case .history: return "Historial"
         case .userProfile: return "Perfil de Usuario"
         }

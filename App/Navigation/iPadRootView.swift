@@ -16,8 +16,12 @@ struct iPadRootView: View {
         #if os(iOS)
             MainWorkspaceView(
                 viewModel: viewModel,
-                onHistory: {print("on History")},
-                onPdfTools: { navigateTo(.pdfTools) },
+//                onHistory: {
+//                    print("on History")
+//                },
+                onPdfTools: {
+                    navigateTo(.pdfTools)
+                },
                 onOpenProfile: { navigateTo(.userProfile) }
             )
             .fullScreenCover(item: $activeRoute) { destination in
@@ -42,7 +46,7 @@ struct iPadRootView: View {
                         iconName: "xmark.circle",
                         onAction: dismiss
                     ) {
-                        Placeholder(someText: AppRoute.pdfTools.title)
+                        Placeholder(someText: AppRoute.userProfile.title)
                     }
 
                 case .history:
@@ -52,7 +56,7 @@ struct iPadRootView: View {
                         iconName: "xmark.circle",
                         onAction: dismiss
                     ) {
-                        Placeholder(someText: AppRoute.pdfTools.title)
+                        Placeholder(someText: AppRoute.history.title)
                     }
                 }
             }

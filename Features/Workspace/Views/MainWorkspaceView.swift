@@ -92,7 +92,7 @@ struct MainWorkspaceView: View {
         Binding(
             get: {
                 isInspectorPresented && !viewModel.documents.isEmpty
-                    && !viewModel.isProcessing
+                    && !viewModel.isProcessing && horizontalSizeClass != .compact
             },
             set: { isInspectorPresented = $0 }
         )
