@@ -26,6 +26,14 @@ struct MainWorkspaceView: View {
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
+    var isIPhone: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone
+    }
+
+    var showInPhone: Bool {
+        horizontalSizeClass == .compact && isIPhone
+    }
+
     @State private var columnVisibility: NavigationSplitViewVisibility =
         .detailOnly
     @State private var isInspectorPresented: Bool = true
@@ -163,6 +171,7 @@ extension MainWorkspaceView {
                     document: document,
                     viewModel: viewModel
                 )
+                .padding()
             } else {
                 Text("Selecciona un archivo")
                     .foregroundColor(.secondary)

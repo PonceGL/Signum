@@ -10,6 +10,16 @@ import SwiftUI
 struct DocumentInspectorView: View {
     let document: LegalDocument
     @ObservedObject var viewModel: WorkspaceViewModel
+    
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    var isIPhone: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone
+    }
+    
+    var showInPhone: Bool {
+        horizontalSizeClass == .compact && isIPhone
+    }
 
     @State private var editedName: String = ""
 
@@ -23,13 +33,11 @@ struct DocumentInspectorView: View {
                 Text("Nombre Sugerido / Final")
                     .font(.caption)
                     .fontWeight(.bold)
-
-                TextField("Nombre del archivo", text: $editedName)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 16, design: .monospaced))
-                    #if os(iOS)
-                        .textInputAutocapitalization(.characters)
-                    #endif
+                
+                SignumTextField(
+                    title: "Nombre del archivo",
+                    text: $editedName,
+                )
             }
 
             Button(action: {
@@ -60,23 +68,13 @@ struct DocumentInspectorView: View {
             .foregroundColor(.secondary)
 
             Spacer()
-
-            Button(action: {
+            
+            SignumButton(title: "Confirmar") {
                 viewModel.finalizeAndRenameDocument(id: document.id, newName: editedName)
-            }) {
-                HStack {
-                    Spacer()
-                    Text("Confirmar")
-                        .fontWeight(.bold)
-                    Spacer()
-                }
-                .padding(.vertical, 8)
             }
-            .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .keyboardShortcut(.return, modifiers: [])
         }
-        .padding()
         .onAppear {
             editedName = document.userEditedName
         }
