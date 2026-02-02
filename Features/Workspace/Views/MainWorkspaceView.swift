@@ -68,7 +68,7 @@ struct MainWorkspaceView: View {
                             max: LayoutConfig.sideBarWidth.max
                         )
                 } detail: {
-                            detailView
+                    detailView
                 }
                 .inspector(isPresented: inspectorBinding) {
                     inspectorView

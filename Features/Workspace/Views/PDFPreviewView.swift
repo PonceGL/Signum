@@ -11,41 +11,19 @@ import SwiftUI
 struct PDFPreviewView: View {
     let document: LegalDocument
 
-    // TODO: Implementar un Coordinador para controlar el nivel de zoom de forma programática
-
     private var pdfDocument: PDFDocument? {
         PDFDocument(url: document.originalURL)
     }
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            if document.originalURL.path.contains("/dev/null") {
-                Text("Error: No se encontró el PDF en el Bundle")
-                    .foregroundColor(.red)
-            }
-
-            PDFKitView(document: pdfDocument).edgesIgnoringSafeArea(.all)
-
-            #if os(macOS)
-                VStack {
-                    Button(action: { /* TODO: Lógica de Zoom + */  }) {
-                        Image(systemName: "plus.magnifyingglass")
-                            .padding(8)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                    }
-
-                    Button(action: { /* TODO: Lógica de Zoom - */  }) {
-                        Image(systemName: "minus.magnifyingglass")
-                            .padding(8)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                    }
-                }
-                .padding()
-                .buttonStyle(.plain)
-            #endif
+        if document.originalURL.path.contains("/dev/null") {
+            Text("Error: No se encontró el PDF en el Bundle")
+                .foregroundColor(.red)
         }
+
+        PDFKitView(document: pdfDocument)
+            .edgesIgnoringSafeArea(.all)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
