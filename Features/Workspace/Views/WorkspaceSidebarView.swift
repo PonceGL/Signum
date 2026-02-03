@@ -23,7 +23,13 @@ struct WorkspaceSidebarView: View {
                 .tag(doc.id)
                 .contextMenu {
                     Button {
-                        // TODO: Reveal in Finder
+                        // TODO: Reveal in Finder iOS
+                        print("Reveal in Finder doc: \(doc)")
+                        #if os(macOS)
+                            NSWorkspace.shared.activateFileViewerSelecting([
+                                doc.originalURL
+                            ])
+                        #endif
                     } label: {
                         Label("Ver en carpeta", systemImage: "folder")
                     }
@@ -39,24 +45,31 @@ struct WorkspaceSidebarView: View {
                 }
 
                 HStack {
-                    Button(role: .destructive, action: viewModel.clearWorkspace)
-                    {
-                        Label("Limpiar", systemImage: "trash")
+                    SignumButton(
+                        title: "Limpiar",
+                        role: .destructive,
+                        iconLeft: "trash",
+                        backgroundColor: .red,
+                        isDisabled: (viewModel.documents.isEmpty
+                            || viewModel.isProcessing)
+                    ) {
+                        viewModel.clearWorkspace()
                     }
-                    .buttonStyle(.bordered)
-                    .disabled(viewModel.documents.isEmpty)
+                    .controlSize(.large)
+                    //                    .keyboardShortcut(.return, modifiers: []) // TODO:
 
                     Spacer()
 
-                    Button {
+                    SignumButton(
+                        title: "Analizar",
+                        iconLeft: "play.fill",
+                        isDisabled: (viewModel.documents.isEmpty
+                            || viewModel.isProcessing)
+                    ) {
                         Task { await viewModel.startBatchProcessing() }
-                    } label: {
-                        Label("Analizar", systemImage: "play.fill")
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(
-                        viewModel.documents.isEmpty || viewModel.isProcessing
-                    )
+                    .controlSize(.large)
+                    //                    .keyboardShortcut(.return, modifiers: []) // TODO:
                 }
                 .padding()
             }

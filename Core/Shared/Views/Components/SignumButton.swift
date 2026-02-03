@@ -10,6 +10,7 @@ import SwiftUI
 struct SignumButton: View {
 
     let title: String
+    var role: ButtonRole? = nil
     var iconLeft: String? = nil
     var iconRight: String? = nil
     var backgroundColor: Color = .blue
@@ -19,7 +20,7 @@ struct SignumButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button(role: role, action: action) {
             HStack(spacing: 10) {
                 if let iconLeft = iconLeft {
                     Image(systemName: iconLeft)
@@ -60,6 +61,14 @@ struct SignumButtonStyle: ButtonStyle {
     VStack(spacing: 20) {
         // 1. Solo texto (Clásico)
         SignumButton(title: "Confirmar") {
+            print("Acción ejecutada")
+        }
+        
+        SignumButton(title: "Confirmar", isDisabled: true) {
+            print("Acción ejecutada")
+        }
+        
+        SignumButton(title: "Confirmar", role: .destructive, isDisabled: false) {
             print("Acción ejecutada")
         }
 

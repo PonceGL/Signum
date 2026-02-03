@@ -27,7 +27,11 @@ struct MainWorkspaceView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var isIPhone: Bool {
-        UIDevice.current.userInterfaceIdiom == .phone
+        #if os(iOS)
+            UIDevice.current.userInterfaceIdiom == .phone
+        #else
+            false
+        #endif
     }
 
     var showInPhone: Bool {

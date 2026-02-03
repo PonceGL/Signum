@@ -11,13 +11,17 @@ struct SignumTextField: View {
     let title: String
     @Binding var text: String
     var icon: String? = nil
-    var keyboardType: UIKeyboardType = .default
-    var contentType: UITextContentType? = nil
+    #if os(iOS)
+        var keyboardType: UIKeyboardType = .default
+        var contentType: UITextContentType? = nil
+    #endif
 
     var body: some View {
         TextField(title, text: $text)
-            .keyboardType(keyboardType)
-            .textContentType(contentType)
+            #if os(iOS)
+                .keyboardType(keyboardType)
+                .textContentType(contentType)
+            #endif
             .signumInput(icon: icon)
     }
 }
@@ -33,9 +37,16 @@ struct SignumTextField: View {
             title: "Correo Electrónico",
             text: .constant(""),
             icon: "envelope",
-            keyboardType: .emailAddress,
-            contentType: .emailAddress
         )
+        #if os(iOS)
+            SignumTextField(
+                title: "Correo Electrónico",
+                text: .constant(""),
+                icon: "envelope",
+                keyboardType: .emailAddress,
+                contentType: .emailAddress
+            )
+        #endif
 
     }
 }

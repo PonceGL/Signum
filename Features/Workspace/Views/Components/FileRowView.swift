@@ -21,7 +21,6 @@ struct FileRowView: View {
                 Text(document.originalFileName)
                     .font(.headline)
                     .lineLimit(1)
-                    .foregroundColor(isSelected ? .white : .primary)
 
                 if let type = document.docType {
                     Text(type)
@@ -38,7 +37,6 @@ struct FileRowView: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
-        .background(isSelected ? Color.accentColor : Color.clear)
         .cornerRadius(8)
         .contentShape(Rectangle())
     }

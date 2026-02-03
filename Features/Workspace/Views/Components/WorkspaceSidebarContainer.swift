@@ -14,7 +14,11 @@ struct WorkspaceSidebarContainer: View {
     var onHistory: (() -> Void)? = nil
 
     var isIPhone: Bool {
-        UIDevice.current.userInterfaceIdiom == .phone
+        #if os(iOS)
+            UIDevice.current.userInterfaceIdiom == .phone
+        #else
+            false
+        #endif
     }
 
     var body: some View {
@@ -25,7 +29,7 @@ struct WorkspaceSidebarContainer: View {
                 SignumEmptyStateView(
                     title: "Mesa Vacía",
                     systemImage: "doc.viewfinder",
-                    description: "Arrastra archivos para comenzar.",
+                    description: "Agrega documentos a la mesa para comenzar a analizar. Puedes arrastrarlos aquí o seleccionar archivos para comenzar.",
                     actionLabel: isIPhone
                         ? "Seleccionar" : nil,
                     action: isIPhone
