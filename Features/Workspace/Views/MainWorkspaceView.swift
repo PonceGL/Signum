@@ -85,6 +85,7 @@ struct MainWorkspaceView: View {
                             ideal: LayoutConfig.sideBarWidth.ideal,
                             max: LayoutConfig.sideBarWidth.max
                         )
+                        .presentationDetents([.medium, .large])
                 }
                 .navigationSplitViewStyle(.balanced)
             #endif
@@ -101,7 +102,6 @@ struct MainWorkspaceView: View {
             get: {
                 isInspectorPresented && !viewModel.documents.isEmpty
                     && !viewModel.isProcessing
-                    && horizontalSizeClass != .compact
             },
             set: { isInspectorPresented = $0 }
         )
