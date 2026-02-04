@@ -20,21 +20,49 @@ struct LayoutConfig {
 struct MainWorkspaceView: View {
     @StateObject var viewModel: WorkspaceViewModel
 
+    var onHistory: (() -> Void)? = nil
+    var onPdfTools: (() -> Void)? = nil
+    var onOpenProfile: (() -> Void)? = nil
+
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    var isIPhone: Bool {
+        #if os(iOS)
+            UIDevice.current.userInterfaceIdiom == .phone
+        #else
+            false
+        #endif
+    }
+
+    var showInPhone: Bool {
+        horizontalSizeClass == .compact && isIPhone
+    }
+
     @State private var columnVisibility: NavigationSplitViewVisibility =
         .detailOnly
     @State private var isInspectorPresented: Bool = true
     @State private var isFileImporterPresented: Bool = false
 
-    init(viewModel: WorkspaceViewModel? = nil) {
+    init(
+        viewModel: WorkspaceViewModel? = nil,
+        onHistory: (() -> Void)? = nil,
+        onPdfTools: (() -> Void)? = nil,
+        onOpenProfile: (() -> Void)? = nil
+    ) {
         let vm = viewModel ?? WorkspaceViewModel()
         _viewModel = StateObject(wrappedValue: vm)
+        self.onHistory = onHistory
+        self.onPdfTools = onPdfTools
+        self.onOpenProfile = onOpenProfile
     }
 
     var body: some View {
         Group {
             #if os(macOS)
                 HSplitView {
-                    sidebarView
+                    if !viewModel.documents.isEmpty {
+                        sidebarView
+                    }
 
                     detailView
 
@@ -61,6 +89,7 @@ struct MainWorkspaceView: View {
                             ideal: LayoutConfig.sideBarWidth.ideal,
                             max: LayoutConfig.sideBarWidth.max
                         )
+                        .presentationDetents([.medium, .large])
                 }
                 .navigationSplitViewStyle(.balanced)
             #endif
@@ -100,17 +129,18 @@ extension MainWorkspaceView {
 
     @ViewBuilder
     fileprivate var sidebarView: some View {
-        if !viewModel.documents.isEmpty {
-            WorkspaceSidebarContainer(viewModel: viewModel)
-                .frame(
-                    minWidth: LayoutConfig.sideBarWidth.min,
-                    idealWidth: LayoutConfig.sideBarWidth.ideal,
-                    maxWidth: LayoutConfig.sideBarWidth.max,
-                    maxHeight: .infinity
-                )
-        } else {
-            detailView
-        }
+        WorkspaceSidebarContainer(
+            viewModel: viewModel,
+            isFileImporterPresented: $isFileImporterPresented,
+            onHistory: onHistory,
+        )
+        .frame(
+            minWidth: LayoutConfig.sideBarWidth.min,
+            idealWidth: LayoutConfig.sideBarWidth.ideal,
+            maxWidth: LayoutConfig.sideBarWidth.max,
+            maxHeight: .infinity
+        )
+
     }
 
     @ViewBuilder
@@ -131,9 +161,8 @@ extension MainWorkspaceView {
             WorkspaceToolbar(
                 viewModel: viewModel,
                 isInspectorPresented: $isInspectorPresented,
-                onUndo: { print("Undo tap") },
-                onShare: { print("Share tap") },
-                onMore: { print("More tap") }
+                onOpenProfile: onOpenProfile,
+                onPdfTools: onPdfTools
             )
         }
     }
@@ -146,6 +175,7 @@ extension MainWorkspaceView {
                     document: document,
                     viewModel: viewModel
                 )
+                .padding()
             } else {
                 Text("Selecciona un archivo")
                     .foregroundColor(.secondary)

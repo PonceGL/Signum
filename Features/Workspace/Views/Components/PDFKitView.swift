@@ -31,26 +31,41 @@ struct PDFKitView: ViewRepresentable {
 
     private func setupView() -> PDFView {
         let pdfView = PDFView()
-        pdfView.autoScales = true
         pdfView.displayMode = .singlePageContinuous
         pdfView.displayDirection = .vertical
+        pdfView.displaysAsBook = false
         pdfView.maxScaleFactor = 4.0
-        pdfView.minScaleFactor = 0.5
-        
+        pdfView.minScaleFactor = 0.1
+
         #if os(macOS)
-        pdfView.backgroundColor = .controlBackgroundColor
+            pdfView.backgroundColor = .controlBackgroundColor
         #else
-        pdfView.backgroundColor = .systemBackground
+            pdfView.backgroundColor = .systemBackground
         #endif
-        
+
         return pdfView
     }
 
     private func updateBaseView(_ pdfView: PDFView) {
-        if pdfView.document?.documentURL != document?.documentURL {
-            
-            DispatchQueue.main.async {
-                pdfView.document = document
+        guard let document = document,
+            pdfView.document?.documentURL != document.documentURL
+        else { return }
+
+        pdfView.document = document
+
+        DispatchQueue.main.async {
+            withAnimation(
+                .spring(response: 0.5, dampingFraction: 0.8)
+            ) {
+                // 1. Activamos el escalado automático
+                pdfView.autoScales = true
+
+                // 2. Forzamos el ajuste inicial al ancho disponible (SizeToFit)
+                pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit
+
+                // 3. Establecemos el factor de escala inicial como el mínimo permitido
+                // para que el usuario no pueda "encoger" el PDF más allá del ancho de pantalla.
+                pdfView.minScaleFactor = pdfView.scaleFactorForSizeToFit
             }
         }
     }

@@ -9,30 +9,30 @@ import Foundation
 import SwiftUI
 
 enum AppRoute: String, CaseIterable, Identifiable {
-    case dashboard
     case scanner
+    case pdfTools
     case history
-    case settings
+    case userProfile
 
     var id: String { self.rawValue }
 
     /// Título visible en la UI
     var title: String {
         switch self {
-        case .dashboard: return "Dashboard"
         case .scanner: return "Nuevo Escaneo"
+        case .pdfTools: return "Utilidad de PDF"
         case .history: return "Historial"
-        case .settings: return "Configuración"
+        case .userProfile: return "Perfil de Usuario"
         }
     }
 
     /// Icono SF Symbol asociado
     var iconName: String {
         switch self {
-        case .dashboard: return "chart.bar.doc.horizontal"
-        case .scanner: return "doc.viewfinder"  // Icono central de nuestra app
+        case .scanner: return "doc.viewfinder"
+        case .pdfTools: return "document.badge.gearshape"
         case .history: return "clock.arrow.circlepath"
-        case .settings: return "gearshape"
+        case .userProfile: return "person.crop.circle"
         }
     }
 }

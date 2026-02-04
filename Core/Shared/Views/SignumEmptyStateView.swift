@@ -33,13 +33,14 @@ struct SignumEmptyStateView: View {
                 .padding(.horizontal, 40)
                 
                 if let label = actionLabel, let action = action {
-                    Button(action: action) {
-                        Text(label)
-                            .fontWeight(.semibold)
-                            .padding(.horizontal, 100)
+                    HStack (alignment: .center) {
+                        SignumButton(title: label) {
+                            action()
+                        }
+                        .controlSize(.large)
+                        .keyboardShortcut(.return, modifiers: [])
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                    .frame(maxWidth: 300)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

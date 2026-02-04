@@ -9,16 +9,31 @@ import SwiftUI
 
 struct WorkspaceSidebarContainer: View {
     @ObservedObject var viewModel: WorkspaceViewModel
+    @Binding var isFileImporterPresented: Bool
+
+    var onHistory: (() -> Void)? = nil
+
+    var isIPhone: Bool {
+        #if os(iOS)
+            UIDevice.current.userInterfaceIdiom == .phone
+        #else
+            false
+        #endif
+    }
 
     var body: some View {
         Group {
             if !viewModel.documents.isEmpty {
-                WorkspaceSidebarView(viewModel: viewModel)
+                WorkspaceSidebarView(viewModel: viewModel, onHistory: onHistory)
             } else {
                 SignumEmptyStateView(
                     title: "Mesa Vacía",
                     systemImage: "doc.viewfinder",
-                    description: "Arrastra archivos para comenzar."
+                    description: "Agrega documentos a la mesa para comenzar a analizar. Puedes arrastrarlos aquí o seleccionar archivos para comenzar.",
+                    actionLabel: isIPhone
+                        ? "Seleccionar" : nil,
+                    action: isIPhone
+                        ? { isFileImporterPresented = true } : nil
                 )
             }
         }
@@ -28,7 +43,10 @@ struct WorkspaceSidebarContainer: View {
 #Preview("Mesa Vacía") {
     let vm = WorkspaceViewModel()
     vm.documents = []
-    return WorkspaceSidebarContainer(viewModel: vm)
+    return WorkspaceSidebarContainer(
+        viewModel: vm,
+        isFileImporterPresented: .constant(false)
+    )
 }
 
 #Preview("Con Archivo Seleccionado") {
@@ -36,7 +54,10 @@ struct WorkspaceSidebarContainer: View {
     vm.documents = [.mock]
     vm.selectedDocumentID = vm.documents.first?.id
 
-    return WorkspaceSidebarContainer(viewModel: vm)
+    return WorkspaceSidebarContainer(
+        viewModel: vm,
+        isFileImporterPresented: .constant(false)
+    )
 }
 
 #Preview("Procesando") {
@@ -47,5 +68,8 @@ struct WorkspaceSidebarContainer: View {
     vm.isProcessing = true
     vm.totalProgress = 0.5
 
-    return WorkspaceSidebarContainer(viewModel: vm)
+    return WorkspaceSidebarContainer(
+        viewModel: vm,
+        isFileImporterPresented: .constant(false)
+    )
 }
