@@ -140,6 +140,14 @@ actor FileImportService: FileImporting {
     private func analyzeDirectory(_ folderURL: URL) async -> DirectoryAnalysis {
         let fileManager = FileManager.default
         let keys: [URLResourceKey] = [.contentTypeKey, .isDirectoryKey, .fileSizeKey]
+        
+        // Intentar obtener acceso de seguridad si es necesario
+        let needsAccess = folderURL.startAccessingSecurityScopedResource()
+        defer {
+            if needsAccess {
+                folderURL.stopAccessingSecurityScopedResource()
+            }
+        }
 
         guard
             let items = try? fileManager.contentsOfDirectory(
@@ -148,6 +156,8 @@ actor FileImportService: FileImporting {
                 options: [.skipsHiddenFiles]
             )
         else {
+            print("❌ No se pudo leer el contenido de: \(folderURL.lastPathComponent)")
+            print("   Path: \(folderURL.path)")
             return DirectoryAnalysis(
                 validPDFs: [],
                 totalItems: 0,
@@ -155,6 +165,8 @@ actor FileImportService: FileImporting {
                 subfolders: []
             )
         }
+        
+        print("📂 Analizando carpeta: \(folderURL.lastPathComponent) - \(items.count) items encontrados")
 
         var validPDFs: [ImportResult] = []
         var subfolders: [URL] = []
@@ -183,11 +195,15 @@ actor FileImportService: FileImporting {
             }
         }
 
-        return DirectoryAnalysis(
+        let result = DirectoryAnalysis(
             validPDFs: validPDFs,
             totalItems: items.count,
             hasSubfolders: !subfolders.isEmpty,
             subfolders: subfolders
         )
+        
+        print("✅ Análisis completo: \(validPDFs.count) PDFs válidos, \(subfolders.count) subcarpetas")
+        
+        return result
     }
 }

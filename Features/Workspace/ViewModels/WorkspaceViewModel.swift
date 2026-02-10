@@ -25,8 +25,11 @@ class WorkspaceViewModel: ObservableObject {
     @Published var importErrorMessage: String?
     @Published var importAlert: ImportAlert?
     
-    // Almacenamiento temporal para navegación de subcarpetas
-    private var pendingSubfolders: [URL] = []
+    // Navegación de subcarpetas
+    @Published var showSubfolderPicker: Bool = false
+    @Published var availableSubfolders: [URL] = []
+    @Published var parentFolderName: String = ""
+    @Published var shouldOpenFileImporter: Bool = false
 
     // MARK: - Dependencies & Private Storage
     private let importService: FileImporting
@@ -101,12 +104,11 @@ class WorkspaceViewModel: ObservableObject {
         case .directoryHasNoValidPDFs(let hasSubfolders, let subfolders):
             if hasSubfolders {
                 // Caso C: Carpeta profunda con subcarpetas
-                pendingSubfolders = subfolders
                 importAlert = .folderWithSubfolders(
                     folderName: failedURL.lastPathComponent,
                     subfolders: subfolders,
-                    onExplore: { [weak self] folders in
-                        self?.showSubfolderPicker(folders)
+                    onExplore: { [weak self] _ in
+                        self?.showSubfolderPicker(subfolders)
                     }
                 )
             } else {
@@ -202,10 +204,44 @@ class WorkspaceViewModel: ObservableObject {
         }
     }
     
-    /// Muestra el selector de subcarpetas (será implementado en Fase 4)
+    /// Muestra el selector de subcarpetas
+    /// En macOS, debido a restricciones de sandbox, es mejor usar el file picker del sistema
     private func showSubfolderPicker(_ folders: [URL]) {
-        // TODO: Implementar en Fase 4
-        print("📁 Subcarpetas disponibles: \(folders.map { $0.lastPathComponent })")
+        guard !folders.isEmpty else { return }
+        
+        #if os(macOS)
+        // En macOS, usar el file picker del sistema para obtener permisos de seguridad válidos
+        print("📁 Abriendo file picker del sistema para seleccionar subcarpeta")
+        shouldOpenFileImporter = true
+        #else
+        // En iOS/iPadOS, usar nuestro sheet personalizado (funciona bien)
+        availableSubfolders = folders
+        parentFolderName = folders.first?.deletingLastPathComponent().lastPathComponent ?? "Carpeta"
+        showSubfolderPicker = true
+        print("📁 Mostrando picker con \(folders.count) subcarpetas")
+        #endif
+    }
+    
+    /// Procesa la subcarpeta seleccionada por el usuario
+    func selectSubfolder(_ folderURL: URL) {
+        showSubfolderPicker = false
+        
+        print("📂 Usuario seleccionó: \(folderURL.lastPathComponent)")
+        
+        // CRÍTICO: Solicitar acceso de seguridad para la subcarpeta
+        // Las subcarpetas NO heredan automáticamente el permiso de la carpeta padre
+        let accessing = folderURL.startAccessingSecurityScopedResource()
+        if accessing {
+            print("� Acceso de seguridad concedido para: \(folderURL.lastPathComponent)")
+        } else {
+            print("⚠️ No se pudo obtener acceso de seguridad, intentando de todas formas...")
+        }
+        
+        // Reiniciar el flujo de importación con la subcarpeta seleccionada
+        addFiles(from: [folderURL])
+        
+        // Nota: No llamamos stopAccessingSecurityScopedResource aquí porque
+        // el importService lo manejará en su propio scope
     }
 
     func removeDocument(_ document: LegalDocument) {

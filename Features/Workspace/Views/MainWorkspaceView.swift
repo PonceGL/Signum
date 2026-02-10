@@ -103,6 +103,21 @@ struct MainWorkspaceView: View {
         .alert(item: $viewModel.importAlert) { alertConfig in
             createAlert(from: alertConfig)
         }
+        .sheet(isPresented: $viewModel.showSubfolderPicker) {
+            SubfolderPickerView(
+                parentFolderName: viewModel.parentFolderName,
+                subfolders: viewModel.availableSubfolders,
+                onSelect: { selectedFolder in
+                    viewModel.selectSubfolder(selectedFolder)
+                }
+            )
+        }
+        .onSignumChange(of: viewModel.shouldOpenFileImporter) { _, newValue in
+            if newValue {
+                isFileImporterPresented = true
+                viewModel.shouldOpenFileImporter = false
+            }
+        }
     }
     
     private func createAlert(from config: ImportAlert) -> Alert {

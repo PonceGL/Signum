@@ -48,12 +48,20 @@ struct ImportAlert: Identifiable {
         let moreCount = max(0, subfolders.count - 3)
         let subfoldersText = moreCount > 0 ? "\(subfolderNames) y \(moreCount) más" : subfolderNames
         
+        #if os(macOS)
+        let message = "La carpeta '\(folderName)' no contiene PDFs en el nivel principal, pero tiene subcarpetas: \(subfoldersText).\n\nPresiona 'Seleccionar' para abrir el selector de archivos y navegar a una de las subcarpetas."
+        let buttonTitle = "Seleccionar"
+        #else
+        let message = "La carpeta '\(folderName)' no contiene PDFs en el nivel principal, pero tiene subcarpetas: \(subfoldersText).\n\n¿Deseas explorar las subcarpetas?"
+        let buttonTitle = "Explorar"
+        #endif
+        
         return ImportAlert(
             title: "Carpeta sin PDFs",
-            message: "La carpeta '\(folderName)' no contiene PDFs en el nivel principal, pero tiene subcarpetas: \(subfoldersText).\n\n¿Deseas explorar las subcarpetas?",
+            message: message,
             actions: [
                 AlertAction(title: "Cancelar", style: .cancel, handler: {}),
-                AlertAction(title: "Explorar", style: .default, handler: {
+                AlertAction(title: buttonTitle, style: .default, handler: {
                     onExplore(subfolders)
                 })
             ]
