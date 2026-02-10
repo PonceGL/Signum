@@ -100,6 +100,39 @@ struct MainWorkspaceView: View {
             isFileImporterPresented: $isFileImporterPresented,
             onImport: handleImport
         )
+        .alert(item: $viewModel.importAlert) { alertConfig in
+            createAlert(from: alertConfig)
+        }
+    }
+    
+    private func createAlert(from config: ImportAlert) -> Alert {
+        if config.actions.count == 1 {
+            // Alerta simple con un solo botón
+            return Alert(
+                title: Text(config.title),
+                message: Text(config.message),
+                dismissButton: .default(Text(config.actions[0].title), action: config.actions[0].handler)
+            )
+        } else {
+            // Alerta con múltiples botones
+            return Alert(
+                title: Text(config.title),
+                message: Text(config.message),
+                primaryButton: alertButton(from: config.actions[0]),
+                secondaryButton: alertButton(from: config.actions[1])
+            )
+        }
+    }
+    
+    private func alertButton(from action: ImportAlert.AlertAction) -> Alert.Button {
+        switch action.style {
+        case .cancel:
+            return .cancel(Text(action.title), action: action.handler)
+        case .destructive:
+            return .destructive(Text(action.title), action: action.handler)
+        case .default:
+            return .default(Text(action.title), action: action.handler)
+        }
     }
     private var inspectorBinding: Binding<Bool> {
         Binding(

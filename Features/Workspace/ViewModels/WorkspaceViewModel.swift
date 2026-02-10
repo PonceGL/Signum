@@ -23,6 +23,10 @@ class WorkspaceViewModel: ObservableObject {
     // Estados de Importación (UI Feedback)
     @Published var isImporting: Bool = false
     @Published var importErrorMessage: String?
+    @Published var importAlert: ImportAlert?
+    
+    // Almacenamiento temporal para navegación de subcarpetas
+    private var pendingSubfolders: [URL] = []
 
     // MARK: - Dependencies & Private Storage
     private let importService: FileImporting
@@ -67,14 +71,89 @@ class WorkspaceViewModel: ObservableObject {
 
     /// Procesa los resultados del servicio y actualiza el estado local.
     private func handleImportResults(_ results: (successes: [ImportResult], failures: [URL: FileImportError])) {
-            var newDocumentsCount = 0
+        // Si hay errores, procesarlos primero
+        if !results.failures.isEmpty {
+            handleImportErrors(results.failures)
+        }
+        
+        // Si no hay éxitos y ya mostramos alerta, no continuar
+        if results.successes.isEmpty {
+            return
+        }
+        
+        // Procesar éxitos normalmente
+        processSuccessfulImports(results.successes)
+    }
+    
+    /// Maneja los errores de importación mostrando alertas apropiadas
+    private func handleImportErrors(_ failures: [URL: FileImportError]) {
+        // Priorizar el primer error encontrado
+        guard let (failedURL, error) = failures.first else { return }
+        
+        switch error {
+        case .isDirectoryButEmpty:
+            // Caso A: Carpeta vacía
+            importAlert = .simple(
+                title: "Carpeta vacía",
+                message: "La carpeta '\(failedURL.lastPathComponent)' no contiene ningún archivo."
+            )
             
-            // Set temporal para rastrear qué orígenes (carpetas) ya intentamos abrir en este lote.
-            // Esto evita el spam de "❌ Error al obtener acceso seguro" repetido por cada archivo de la misma carpeta.
-            var processedSources: Set<URL> = []
+        case .directoryHasNoValidPDFs(let hasSubfolders, let subfolders):
+            if hasSubfolders {
+                // Caso C: Carpeta profunda con subcarpetas
+                pendingSubfolders = subfolders
+                importAlert = .folderWithSubfolders(
+                    folderName: failedURL.lastPathComponent,
+                    subfolders: subfolders,
+                    onExplore: { [weak self] folders in
+                        self?.showSubfolderPicker(folders)
+                    }
+                )
+            } else {
+                // Caso B: Carpeta con ruido (archivos no-PDF)
+                importAlert = .simple(
+                    title: "Sin archivos PDF",
+                    message: "La carpeta '\(failedURL.lastPathComponent)' contiene archivos, pero ninguno es PDF."
+                )
+            }
             
-            // 1. Procesar Éxitos
-            for item in results.successes {
+        case .unreadable:
+            // Caso D: Archivo zombie o corrupto
+            importAlert = .simple(
+                title: "Archivo no válido",
+                message: "El archivo '\(failedURL.lastPathComponent)' está vacío o dañado."
+            )
+            
+        case .invalidFileType:
+            importAlert = .simple(
+                title: "Tipo de archivo no soportado",
+                message: "El archivo '\(failedURL.lastPathComponent)' no es un PDF válido."
+            )
+            
+        case .permissionDenied:
+            importAlert = .simple(
+                title: "Sin permisos",
+                message: "No se tienen permisos para leer '\(failedURL.lastPathComponent)'."
+            )
+            
+        case .unknown:
+            importAlert = .simple(
+                title: "Error desconocido",
+                message: "Ocurrió un error al importar '\(failedURL.lastPathComponent)'."
+            )
+        }
+    }
+    
+    /// Procesa las importaciones exitosas
+    private func processSuccessfulImports(_ successes: [ImportResult]) {
+        var newDocumentsCount = 0
+        
+        // Set temporal para rastrear qué orígenes (carpetas) ya intentamos abrir en este lote.
+        // Esto evita el spam de "❌ Error al obtener acceso seguro" repetido por cada archivo de la misma carpeta.
+        var processedSources: Set<URL> = []
+        
+        // 1. Procesar Éxitos
+        for item in successes {
                 
                 // LOGICA DE SEGURIDAD OPTIMIZADA
                 // Solo intentamos acceder si no lo hemos procesado en este lote Y no lo tenemos ya guardado
@@ -116,22 +195,18 @@ class WorkspaceViewModel: ObservableObject {
                 }
             }
             
-            // 3. Gestión de Errores
-            if !results.failures.isEmpty {
-                let failureCount = results.failures.count
-                let firstErrorDescription = results.failures.values.first?.localizedDescription ?? "Error desconocido"
-                
-                if failureCount == 1 {
-                    importErrorMessage = "No se pudo importar un archivo: \(firstErrorDescription)"
-                } else {
-                    importErrorMessage = "Se importaron \(newDocumentsCount) archivos, pero \(failureCount) fallaron. Ejemplo: \(firstErrorDescription)"
-                }
-                print("⚠️ Reporte de Importación: \(importErrorMessage ?? "")")
-            } else if newDocumentsCount > 0 {
-                importErrorMessage = nil
-                print("✅ Importación exitosa de \(newDocumentsCount) archivos.")
-            }
+        // 3. Mensaje de éxito
+        if newDocumentsCount > 0 {
+            importErrorMessage = nil
+            print("✅ Importación exitosa de \(newDocumentsCount) archivos.")
         }
+    }
+    
+    /// Muestra el selector de subcarpetas (será implementado en Fase 4)
+    private func showSubfolderPicker(_ folders: [URL]) {
+        // TODO: Implementar en Fase 4
+        print("📁 Subcarpetas disponibles: \(folders.map { $0.lastPathComponent })")
+    }
 
     func removeDocument(_ document: LegalDocument) {
         documents.removeAll { $0.id == document.id }
