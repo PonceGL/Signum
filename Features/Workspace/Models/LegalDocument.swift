@@ -8,13 +8,80 @@
 import Foundation
 import UniformTypeIdentifiers
 
-enum DocumentStatus: String, Codable, CaseIterable {
-    case pending  // Recién agregado
-    case analyzing  // En el pipeline OCR/ML
-    case needsReview  // IA terminó, espera al humano
-    case verified  // Humano confirmó
-    case renamed  // Acción física en disco completada
-    case error  // Fallo en lectura o permisos
+enum InvalidReason: String, Codable, Equatable {
+    case emptyFile      // 0 bytes
+    case corrupted      // No se puede leer como PDF válido
+    case readPermission // Sin permisos de lectura
+    
+    var localizedDescription: String {
+        switch self {
+        case .emptyFile:
+            return "Archivo vacío (0 bytes)"
+        case .corrupted:
+            return "Archivo corrupto o dañado"
+        case .readPermission:
+            return "Sin permisos de lectura"
+        }
+    }
+}
+
+enum DocumentStatus: Equatable, Codable {
+    case pending        // Recién agregado
+    case analyzing      // En el pipeline OCR/ML
+    case needsReview    // IA terminó, espera al humano
+    case verified       // Humano confirmó
+    case renamed        // Acción física en disco completada
+    case error(String)  // Fallo en lectura o permisos
+    case invalid(reason: InvalidReason)  // Archivo no válido
+    
+    // Codable conformance manual para associated values
+    enum CodingKeys: String, CodingKey {
+        case type, errorMessage, invalidReason
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decode(String.self, forKey: .type)
+        
+        switch type {
+        case "pending": self = .pending
+        case "analyzing": self = .analyzing
+        case "needsReview": self = .needsReview
+        case "verified": self = .verified
+        case "renamed": self = .renamed
+        case "error":
+            let message = try container.decode(String.self, forKey: .errorMessage)
+            self = .error(message)
+        case "invalid":
+            let reason = try container.decode(InvalidReason.self, forKey: .invalidReason)
+            self = .invalid(reason: reason)
+        default:
+            self = .pending
+        }
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        switch self {
+        case .pending:
+            try container.encode("pending", forKey: .type)
+        case .analyzing:
+            try container.encode("analyzing", forKey: .type)
+        case .needsReview:
+            try container.encode("needsReview", forKey: .type)
+        case .verified:
+            try container.encode("verified", forKey: .type)
+        case .renamed:
+            try container.encode("renamed", forKey: .type)
+        case .error(let message):
+            try container.encode("error", forKey: .type)
+            try container.encode(message, forKey: .errorMessage)
+        case .invalid(let reason):
+            try container.encode("invalid", forKey: .type)
+            try container.encode(reason, forKey: .invalidReason)
+        }
+    }
 }
 
 /// Entidad principal que representa un archivo PDF y sus metadatos legales.
