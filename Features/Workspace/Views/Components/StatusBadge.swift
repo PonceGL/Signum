@@ -37,6 +37,10 @@ struct StatusBadge: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.red)
                         .font(.system(size: 14))
+                case .invalid:
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.gray)
+                        .font(.system(size: 14))
                 }
             }
         }
@@ -48,7 +52,8 @@ struct StatusBadge: View {
         StatusBadge(status: .analyzing)
         StatusBadge(status: .needsReview)
         StatusBadge(status: .verified)
-        StatusBadge(status: .error)
+        StatusBadge(status: .error("Error de prueba"))
+        StatusBadge(status: .invalid(reason: .emptyFile))
     }
     .padding()
 }

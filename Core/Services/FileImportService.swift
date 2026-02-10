@@ -13,15 +13,27 @@ enum FileImportError: LocalizedError {
     case invalidFileType
     case unreadable
     case isDirectoryButEmpty
+    case directoryHasNoValidPDFs(hasSubfolders: Bool, subfolders: [URL])
     case unknown
 
     var errorDescription: String? {
         switch self {
-        case .permissionDenied: return "Sin permisos de lectura."
-        case .invalidFileType: return "No es un archivo PDF válido."
-        case .unreadable: return "No se pudo leer el archivo."
-        case .isDirectoryButEmpty: return "Carpeta sin PDFs válidos."
-        case .unknown: return "Error desconocido."
+        case .permissionDenied: 
+            return "Sin permisos de lectura."
+        case .invalidFileType: 
+            return "No es un archivo PDF válido."
+        case .unreadable: 
+            return "No se pudo leer el archivo."
+        case .isDirectoryButEmpty: 
+            return "Carpeta sin PDFs válidos."
+        case .directoryHasNoValidPDFs(let hasSubfolders, _):
+            if hasSubfolders {
+                return "No hay PDFs en el nivel principal. La carpeta contiene subcarpetas."
+            } else {
+                return "La carpeta contiene archivos pero ninguno es PDF."
+            }
+        case .unknown: 
+            return "Error desconocido."
         }
     }
 }

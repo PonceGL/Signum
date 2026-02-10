@@ -157,10 +157,11 @@ class WorkspaceViewModel: ObservableObject {
         totalProgress = 0.0
 
         for index in documents.indices {
-            guard
-                documents[index].status == .pending
-                    || documents[index].status == .error
-            else {
+            // Procesar solo documentos pendientes o con error
+            switch documents[index].status {
+            case .pending, .error:
+                break
+            default:
                 continue
             }
 
