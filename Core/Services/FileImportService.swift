@@ -80,20 +80,45 @@ actor FileImportService: FileImporting {
 
             if isDirectory {
                 // LOGICA DE CARPETAS (Nivel 1)
-                let folderResults = await processDirectory(url)
-                if folderResults.isEmpty {
-                    failures[url] = .isDirectoryButEmpty
+                let folderAnalysis = await analyzeDirectory(url)
+                
+                if folderAnalysis.validPDFs.isEmpty {
+                    // No hay PDFs válidos
+                    if folderAnalysis.totalItems == 0 {
+                        // Caso A: Carpeta completamente vacía
+                        failures[url] = .isDirectoryButEmpty
+                    } else if folderAnalysis.hasSubfolders {
+                        // Caso C: Carpeta profunda (tiene subcarpetas pero no PDFs en nivel 1)
+                        failures[url] = .directoryHasNoValidPDFs(
+                            hasSubfolders: true,
+                            subfolders: folderAnalysis.subfolders
+                        )
+                    } else {
+                        // Caso B: Carpeta con ruido (archivos pero no PDFs)
+                        failures[url] = .directoryHasNoValidPDFs(
+                            hasSubfolders: false,
+                            subfolders: []
+                        )
+                    }
                 } else {
-                    successes.append(contentsOf: folderResults)
+                    // Hay PDFs válidos, agregarlos
+                    successes.append(contentsOf: folderAnalysis.validPDFs)
                 }
             } else {
                 // LOGICA DE ARCHIVO INDIVIDUAL
                 if let type = resourceValues.contentType,
                     type.conforms(to: .pdf)
                 {
-                    successes.append(
-                        ImportResult(url: url, originalSource: url)
-                    )
+                    // Validar que el archivo no sea zombie (0 bytes)
+                    if let fileSize = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
+                       fileSize > 0 {
+                        successes.append(
+                            ImportResult(url: url, originalSource: url)
+                        )
+                    } else {
+                        // Caso D: Archivo zombie (0 bytes)
+                        failures[url] = .unreadable
+                    }
                 } else {
                     failures[url] = .invalidFileType
                 }
@@ -103,35 +128,66 @@ actor FileImportService: FileImporting {
         return (successes, failures)
     }
 
-    private func processDirectory(_ folderURL: URL) async -> [ImportResult] {
+    /// Estructura para retornar análisis completo de un directorio
+    private struct DirectoryAnalysis {
+        let validPDFs: [ImportResult]
+        let totalItems: Int
+        let hasSubfolders: Bool
+        let subfolders: [URL]
+    }
+    
+    /// Analiza un directorio y retorna información detallada sobre su contenido
+    private func analyzeDirectory(_ folderURL: URL) async -> DirectoryAnalysis {
         let fileManager = FileManager.default
-        let keys: [URLResourceKey] = [.contentTypeKey]
+        let keys: [URLResourceKey] = [.contentTypeKey, .isDirectoryKey, .fileSizeKey]
 
         guard
-            let files = try? fileManager.contentsOfDirectory(
+            let items = try? fileManager.contentsOfDirectory(
                 at: folderURL,
                 includingPropertiesForKeys: keys,
                 options: [.skipsHiddenFiles]
             )
         else {
-            return []
+            return DirectoryAnalysis(
+                validPDFs: [],
+                totalItems: 0,
+                hasSubfolders: false,
+                subfolders: []
+            )
         }
 
         var validPDFs: [ImportResult] = []
-
-        for fileURL in files {
-            if let values = try? fileURL.resourceValues(forKeys: [
-                .contentTypeKey
-            ]),
-                let type = values.contentType,
-                type.conforms(to: .pdf)
-            {
-                validPDFs.append(
-                    ImportResult(url: fileURL, originalSource: folderURL)
-                )
+        var subfolders: [URL] = []
+        
+        for itemURL in items {
+            guard let values = try? itemURL.resourceValues(forKeys: Set(keys)) else {
+                continue
+            }
+            
+            // Detectar subcarpetas
+            if let isDirectory = values.isDirectory, isDirectory {
+                subfolders.append(itemURL)
+                continue
+            }
+            
+            // Validar PDFs
+            if let type = values.contentType,
+               type.conforms(to: .pdf) {
+                // Caso D: Validar que no sea zombie (0 bytes)
+                if let fileSize = values.fileSize, fileSize > 0 {
+                    validPDFs.append(
+                        ImportResult(url: itemURL, originalSource: folderURL)
+                    )
+                }
+                // Si es 0 bytes, simplemente no lo agregamos (se ignora silenciosamente en carpetas)
             }
         }
 
-        return validPDFs
+        return DirectoryAnalysis(
+            validPDFs: validPDFs,
+            totalItems: items.count,
+            hasSubfolders: !subfolders.isEmpty,
+            subfolders: subfolders
+        )
     }
 }
