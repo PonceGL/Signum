@@ -42,6 +42,15 @@ struct ImportResult: Identifiable {
     let id = UUID()
     let url: URL
     let originalSource: URL
+    let isValid: Bool
+    let invalidReason: InvalidReason?
+    
+    init(url: URL, originalSource: URL, isValid: Bool = true, invalidReason: InvalidReason? = nil) {
+        self.url = url
+        self.originalSource = originalSource
+        self.isValid = isValid
+        self.invalidReason = invalidReason
+    }
 }
 
 protocol FileImporting {
@@ -82,8 +91,12 @@ actor FileImportService: FileImporting {
                 // LOGICA DE CARPETAS (Nivel 1)
                 let folderAnalysis = await analyzeDirectory(url)
                 
-                if folderAnalysis.validPDFs.isEmpty {
-                    // No hay PDFs válidos
+                // Separar PDFs válidos de zombies
+                let validPDFs = folderAnalysis.validPDFs.filter { $0.isValid }
+                let zombiePDFs = folderAnalysis.validPDFs.filter { !$0.isValid }
+                
+                if validPDFs.isEmpty && zombiePDFs.isEmpty {
+                    // No hay PDFs en absoluto (ni válidos ni zombies)
                     if folderAnalysis.totalItems == 0 {
                         // Caso A: Carpeta completamente vacía
                         failures[url] = .isDirectoryButEmpty
@@ -101,7 +114,7 @@ actor FileImportService: FileImporting {
                         )
                     }
                 } else {
-                    // Hay PDFs válidos, agregarlos
+                    // Hay PDFs (válidos o zombies), agregarlos todos
                     successes.append(contentsOf: folderAnalysis.validPDFs)
                 }
             } else {
@@ -113,11 +126,14 @@ actor FileImportService: FileImporting {
                     if let fileSize = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
                        fileSize > 0 {
                         successes.append(
-                            ImportResult(url: url, originalSource: url)
+                            ImportResult(url: url, originalSource: url, isValid: true)
                         )
                     } else {
-                        // Caso D: Archivo zombie (0 bytes)
-                        failures[url] = .unreadable
+                        // Caso D: Archivo zombie (0 bytes) - agregarlo como inválido para mostrarlo en la UI
+                        successes.append(
+                            ImportResult(url: url, originalSource: url, isValid: false, invalidReason: .emptyFile)
+                        )
+                        print("⚠️ Archivo zombie individual detectado: \(url.lastPathComponent)")
                     }
                 } else {
                     failures[url] = .invalidFileType
@@ -188,10 +204,15 @@ actor FileImportService: FileImporting {
                 // Caso D: Validar que no sea zombie (0 bytes)
                 if let fileSize = values.fileSize, fileSize > 0 {
                     validPDFs.append(
-                        ImportResult(url: itemURL, originalSource: folderURL)
+                        ImportResult(url: itemURL, originalSource: folderURL, isValid: true)
                     )
+                } else {
+                    // Archivo zombie (0 bytes) - agregarlo como inválido para mostrarlo en la UI
+                    validPDFs.append(
+                        ImportResult(url: itemURL, originalSource: folderURL, isValid: false, invalidReason: .emptyFile)
+                    )
+                    print("⚠️ Archivo zombie detectado: \(itemURL.lastPathComponent)")
                 }
-                // Si es 0 bytes, simplemente no lo agregamos (se ignora silenciosamente en carpetas)
             }
         }
 

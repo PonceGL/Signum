@@ -174,9 +174,23 @@ class WorkspaceViewModel: ObservableObject {
                     }
                 }
                 
+                // 1. Agregar documentos nuevos (válidos e inválidos)
+                #if os(macOS)
+                if item.url.startAccessingSecurityScopedResource() {
+                    securityAccessURLs.insert(item.url)
+                }
+                #endif
+                
                 // Evitar duplicados en la lista visual
                 if !documents.contains(where: { $0.originalURL == item.url }) {
-                    let newDoc = LegalDocument(url: item.url)
+                    var newDoc = LegalDocument(url: item.url)
+                    
+                    // Si el archivo es inválido (zombie), marcarlo con estado .invalid
+                    if !item.isValid, let reason = item.invalidReason {
+                        newDoc.status = .invalid(reason: reason)
+                        print("🧟 Archivo zombie agregado: \(newDoc.originalFileName) - \(reason)")
+                    }
+                    
                     documents.append(newDoc)
                     newDocumentsCount += 1
                 }
