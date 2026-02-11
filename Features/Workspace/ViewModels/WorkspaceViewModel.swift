@@ -150,36 +150,32 @@ class WorkspaceViewModel: ObservableObject {
     private func processSuccessfulImports(_ successes: [ImportResult]) {
         var newDocumentsCount = 0
         
-        // Set temporal para rastrear qué orígenes (carpetas) ya intentamos abrir en este lote.
-        // Esto evita el spam de "❌ Error al obtener acceso seguro" repetido por cada archivo de la misma carpeta.
-        var processedSources: Set<URL> = []
+        // Set temporal para rastrear qué carpetas padre ya procesamos en este lote
+        var processedParentFolders: Set<URL> = []
         
         // 1. Procesar Éxitos
         for item in successes {
                 
-                // LOGICA DE SEGURIDAD OPTIMIZADA
+                // LOGICA DE SEGURIDAD CRÍTICA PARA RENOMBRADO
+                // Necesitamos permisos sobre la CARPETA PADRE del archivo para poder renombrarlo
+                let parentFolder = item.url.deletingLastPathComponent()
+                
                 // Solo intentamos acceder si no lo hemos procesado en este lote Y no lo tenemos ya guardado
-                if !processedSources.contains(item.originalSource) && !securityAccessURLs.contains(item.originalSource) {
+                if !processedParentFolders.contains(parentFolder) && !securityAccessURLs.contains(parentFolder) {
                     
                     // Marcamos como procesado para no reintentar en la siguiente vuelta del bucle
-                    processedSources.insert(item.originalSource)
+                    processedParentFolders.insert(parentFolder)
                     
-                    if item.originalSource.startAccessingSecurityScopedResource() {
-                        securityAccessURLs.insert(item.originalSource)
-                        print("🔐 Acceso seguro garantizado para: \(item.originalSource.lastPathComponent)")
+                    // Intentar obtener acceso de seguridad sobre la carpeta padre
+                    if parentFolder.startAccessingSecurityScopedResource() {
+                        securityAccessURLs.insert(parentFolder)
+                        print("🔐 Acceso seguro garantizado para carpeta padre: \(parentFolder.lastPathComponent)")
                     } else {
                         // Si falla, es probable que sea un Drag&Drop que no requiere/soporta este scope explícito.
                         // Lo dejamos pasar silenciosamente (o con un solo log informativo) en lugar de un error rojo.
-                        print("ℹ️ Nota: Acceso explícito no requerido para: \(item.originalSource.lastPathComponent)")
+                        print("ℹ️ Nota: Acceso explícito no requerido para carpeta padre: \(parentFolder.lastPathComponent)")
                     }
                 }
-                
-                // 1. Agregar documentos nuevos (válidos e inválidos)
-                #if os(macOS)
-                if item.url.startAccessingSecurityScopedResource() {
-                    securityAccessURLs.insert(item.url)
-                }
-                #endif
                 
                 // Evitar duplicados en la lista visual
                 if !documents.contains(where: { $0.originalURL == item.url }) {
