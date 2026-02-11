@@ -327,7 +327,26 @@ class WorkspaceViewModel: ObservableObject {
             // Agregamos el nuevo nombre y aseguramos la extensión PDF
             let newURL = folderURL.appendingPathComponent(safeName).appendingPathExtension("pdf")
             
-            // 3. Renombrado Físico (FileManager)
+            // 3. CRÍTICO: Verificar y obtener permisos de seguridad sobre la carpeta padre
+            let needsAccess = !securityAccessURLs.contains(folderURL)
+            var accessGranted = false
+            
+            if needsAccess {
+                // Intentar obtener acceso si no lo tenemos ya
+                accessGranted = folderURL.startAccessingSecurityScopedResource()
+                if accessGranted {
+                    securityAccessURLs.insert(folderURL)
+                    print("🔐 Acceso de seguridad obtenido para renombrado: \(folderURL.lastPathComponent)")
+                } else {
+                    print("⚠️ No se pudo obtener acceso de seguridad explícito, intentando renombrar de todas formas...")
+                }
+            } else {
+                print("✅ Ya tenemos acceso de seguridad para: \(folderURL.lastPathComponent)")
+            }
+            
+            // 4. Renombrado Físico (FileManager)
+            // IMPORTANTE: Usamos moveItem que renombra el archivo IN-PLACE sin crear copias
+            // Esto preserva la firma digital del archivo original
             do {
                 // Verificamos si ya existe un archivo con ese nombre para no sobrescribirlo
                 if FileManager.default.fileExists(atPath: newURL.path) {
@@ -340,22 +359,21 @@ class WorkspaceViewModel: ObservableObject {
                 
                 print("✅ Archivo renombrado físicamente a: \(newURL.lastPathComponent)")
                 
-                // 4. Actualizar el Modelo
+                // 5. Actualizar el Modelo
                 // Es crucial actualizar la URL en el modelo, si no, la próxima vez apuntará al archivo viejo.
                 documents[index].userEditedName = safeName
                 documents[index].originalURL = newURL
                 documents[index].status = .verified
-                
-                // 5. Gestión de Permisos (Opcional pero recomendado)
-                // Si el Security Scope estaba atado a la URL específica del archivo (y no la carpeta),
-                // necesitaríamos actualizar `securityAccessURLs`.
-                // Como ahora trabajamos con la CARPETA padre, el permiso sigue vigente para el nuevo archivo.
                 
                 // 6. Siguiente documento
                 selectNextPendingDocument()
                 
             } catch {
                 print("❌ Error CRÍTICO al renombrar archivo: \(error.localizedDescription)")
+                print("   Archivo origen: \(currentURL.path)")
+                print("   Archivo destino: \(newURL.path)")
+                print("   Carpeta padre: \(folderURL.path)")
+                print("   Permisos en securityAccessURLs: \(securityAccessURLs.contains(folderURL))")
                 // Aquí es donde sabremos si tenemos permisos de escritura reales.
             }
         }
