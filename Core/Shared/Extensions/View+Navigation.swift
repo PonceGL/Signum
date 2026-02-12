@@ -19,8 +19,8 @@ struct WorkspaceBehaviorModifier: ViewModifier {
         content
             .fileImporter(
                 isPresented: $isFileImporterPresented,
-                allowedContentTypes: [.pdf, .folder],
-                allowsMultipleSelection: true,
+                allowedContentTypes: [.folder],
+                allowsMultipleSelection: false,
                 onCompletion: onImport
             )
             .onSignumChange(of: viewModel.documents.count) { _, newValue in
@@ -33,7 +33,6 @@ struct WorkspaceBehaviorModifier: ViewModifier {
                 .spring(response: 0.4, dampingFraction: 0.8),
                 value: columnVisibility
             )
-            .withDocumentDropSupport(viewModel: viewModel)
     }
 
     private func updateVisibility(isEmpty: Bool) {

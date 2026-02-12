@@ -71,9 +71,15 @@ actor FileImportService: FileImporting {
 
         for url in urls {
             // 1. Gestionar Seguridad (Start Access)
+            // IMPORTANTE: NO liberamos el recurso aquí con defer porque el ViewModel
+            // necesita mantener los permisos activos para poder renombrar archivos.
+            // El ViewModel será responsable de liberar los permisos cuando sea necesario.
             let accessing = url.startAccessingSecurityScopedResource()
-            defer {
-                if accessing { url.stopAccessingSecurityScopedResource() }
+            
+            if !accessing {
+                print("⚠️ No se pudo obtener acceso de seguridad para: \(url.lastPathComponent)")
+            } else {
+                print("✅ Acceso de seguridad concedido para: \(url.lastPathComponent)")
             }
 
             // 2. Verificar si es Directorio o Archivo
@@ -157,14 +163,9 @@ actor FileImportService: FileImporting {
         let fileManager = FileManager.default
         let keys: [URLResourceKey] = [.contentTypeKey, .isDirectoryKey, .fileSizeKey]
         
-        // Intentar obtener acceso de seguridad si es necesario
-        let needsAccess = folderURL.startAccessingSecurityScopedResource()
-        defer {
-            if needsAccess {
-                folderURL.stopAccessingSecurityScopedResource()
-            }
-        }
-
+        // IMPORTANTE: Los permisos ya fueron solicitados en processImport()
+        // No necesitamos volver a solicitarlos ni liberarlos aquí
+        
         guard
             let items = try? fileManager.contentsOfDirectory(
                 at: folderURL,

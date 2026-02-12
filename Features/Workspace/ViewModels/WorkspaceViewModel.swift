@@ -150,31 +150,26 @@ class WorkspaceViewModel: ObservableObject {
     private func processSuccessfulImports(_ successes: [ImportResult]) {
         var newDocumentsCount = 0
         
-        // Set temporal para rastrear qué carpetas padre ya procesamos en este lote
+        // Sets temporales para rastrear qué URLs ya procesamos en este lote
+        var processedOriginalSources: Set<URL> = []
         var processedParentFolders: Set<URL> = []
         
         // 1. Procesar Éxitos
         for item in successes {
                 
-                // LOGICA DE SEGURIDAD CRÍTICA PARA RENOMBRADO
-                // Necesitamos permisos sobre la CARPETA PADRE del archivo para poder renombrarlo
-                let parentFolder = item.url.deletingLastPathComponent()
+                // ESTRATEGIA: Registrar la carpeta con permisos activos
+                // Como ahora SOLO importamos carpetas (no archivos sueltos),
+                // el FileImportService ya llamó startAccessingSecurityScopedResource() 
+                // sobre la carpeta seleccionada (originalSource).
+                // Necesitamos mantener estos permisos activos para poder renombrar los archivos.
                 
-                // Solo intentamos acceder si no lo hemos procesado en este lote Y no lo tenemos ya guardado
-                if !processedParentFolders.contains(parentFolder) && !securityAccessURLs.contains(parentFolder) {
-                    
-                    // Marcamos como procesado para no reintentar en la siguiente vuelta del bucle
-                    processedParentFolders.insert(parentFolder)
-                    
-                    // Intentar obtener acceso de seguridad sobre la carpeta padre
-                    if parentFolder.startAccessingSecurityScopedResource() {
-                        securityAccessURLs.insert(parentFolder)
-                        print("🔐 Acceso seguro garantizado para carpeta padre: \(parentFolder.lastPathComponent)")
-                    } else {
-                        // Si falla, es probable que sea un Drag&Drop que no requiere/soporta este scope explícito.
-                        // Lo dejamos pasar silenciosamente (o con un solo log informativo) en lugar de un error rojo.
-                        print("ℹ️ Nota: Acceso explícito no requerido para carpeta padre: \(parentFolder.lastPathComponent)")
-                    }
+                let folderWithPermissions = item.originalSource
+                
+                // Registrar la carpeta con permisos si no la tenemos ya
+                if !securityAccessURLs.contains(folderWithPermissions) {
+                    securityAccessURLs.insert(folderWithPermissions)
+                    print("📝 Registrada carpeta con permisos activos: \(folderWithPermissions.lastPathComponent)")
+                    print("   Path completo: \(folderWithPermissions.path)")
                 }
                 
                 // Evitar duplicados en la lista visual
@@ -327,21 +322,34 @@ class WorkspaceViewModel: ObservableObject {
             // Agregamos el nuevo nombre y aseguramos la extensión PDF
             let newURL = folderURL.appendingPathComponent(safeName).appendingPathExtension("pdf")
             
-            // 3. CRÍTICO: Verificar y obtener permisos de seguridad sobre la carpeta padre
-            let needsAccess = !securityAccessURLs.contains(folderURL)
-            var accessGranted = false
+            // 3. CRÍTICO: Verificar y asegurar permisos de seguridad sobre la carpeta
+            // Los permisos ya deberían estar activos desde processSuccessfulImports
+            var hasPermissions = false
             
-            if needsAccess {
-                // Intentar obtener acceso si no lo tenemos ya
-                accessGranted = folderURL.startAccessingSecurityScopedResource()
-                if accessGranted {
-                    securityAccessURLs.insert(folderURL)
-                    print("🔐 Acceso de seguridad obtenido para renombrado: \(folderURL.lastPathComponent)")
-                } else {
-                    print("⚠️ No se pudo obtener acceso de seguridad explícito, intentando renombrar de todas formas...")
+            // Buscar si tenemos permisos para esta carpeta o alguna carpeta padre
+            for securedURL in securityAccessURLs {
+                if folderURL == securedURL || folderURL.path.hasPrefix(securedURL.path) {
+                    hasPermissions = true
+                    print("✅ Permisos activos confirmados para: \(securedURL.lastPathComponent)")
+                    print("   Renombrando archivo en: \(folderURL.lastPathComponent)")
+                    break
                 }
-            } else {
-                print("✅ Ya tenemos acceso de seguridad para: \(folderURL.lastPathComponent)")
+            }
+            
+            if !hasPermissions {
+                print("❌ ERROR: No hay permisos activos para la carpeta: \(folderURL.lastPathComponent)")
+                print("   URLs con permisos activos: \(securityAccessURLs.map { $0.lastPathComponent })")
+                print("   Intentando obtener permisos de emergencia...")
+                
+                // Último intento: solicitar permisos directamente
+                let emergencyAccess = folderURL.startAccessingSecurityScopedResource()
+                if emergencyAccess {
+                    print("✅ Permisos de emergencia concedidos")
+                    securityAccessURLs.insert(folderURL)
+                } else {
+                    print("❌ No se pudieron obtener permisos de emergencia")
+                    return
+                }
             }
             
             // 4. Renombrado Físico (FileManager)
