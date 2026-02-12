@@ -4,6 +4,12 @@
 //
 //  Created by Ponciano Guevara Lozano on 30/01/26.
 //
+//  ⚠️ NOTA: Este código de drag & drop ya NO se utiliza en la aplicación.
+//  La funcionalidad de drag & drop fue deshabilitada porque no podemos garantizar
+//  permisos de escritura confiables en ambas plataformas (macOS 13+ y iPadOS 16+).
+//  La aplicación ahora solo permite importar carpetas mediante el file importer nativo.
+//  Este archivo se mantiene por si en el futuro se necesita reactivar esta funcionalidad.
+//
 
 import SwiftUI
 import UniformTypeIdentifiers

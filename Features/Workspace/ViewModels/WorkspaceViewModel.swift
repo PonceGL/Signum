@@ -150,10 +150,6 @@ class WorkspaceViewModel: ObservableObject {
     private func processSuccessfulImports(_ successes: [ImportResult]) {
         var newDocumentsCount = 0
         
-        // Sets temporales para rastrear qué URLs ya procesamos en este lote
-        var processedOriginalSources: Set<URL> = []
-        var processedParentFolders: Set<URL> = []
-        
         // 1. Procesar Éxitos
         for item in successes {
                 

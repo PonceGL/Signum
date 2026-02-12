@@ -59,6 +59,18 @@ protocol FileImporting {
     )
 }
 
+/// Servicio para procesar la importación de carpetas con PDFs.
+///
+/// IMPORTANTE: Este servicio está diseñado para trabajar SOLO con carpetas seleccionadas
+/// mediante el file importer nativo del sistema. No soporta archivos sueltos ni drag & drop.
+///
+/// GESTIÓN DE PERMISOS:
+/// - Solicita permisos de seguridad (security-scoped resources) para las carpetas importadas
+/// - NO libera los permisos al finalizar, ya que el WorkspaceViewModel los necesita activos
+///   para poder renombrar los archivos originales (requisito crítico de la aplicación)
+/// - El WorkspaceViewModel es responsable de liberar los permisos cuando sea necesario
+///
+/// COMPATIBILIDAD: macOS 13+ y iPadOS 16+
 actor FileImportService: FileImporting {
 
     static let shared = FileImportService()
