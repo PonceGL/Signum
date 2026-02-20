@@ -69,7 +69,7 @@ struct MainWorkspaceView: View {
                     if isInspectorPresented && viewModel.selectedDocument != nil
                     {
                         inspectorView
-                            .frame(minWidth: 300)
+                            .frame(minWidth: LayoutConfig.sideBarWidth.ideal)
                     }
                 }
             #else

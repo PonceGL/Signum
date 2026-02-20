@@ -364,7 +364,11 @@ class WorkspaceViewModel: ObservableObject {
             // IMPORTANTE: Usamos moveItem que renombra el archivo IN-PLACE sin crear copias
             // Esto preserva la firma digital del archivo original
             do {
-                if newURL.path != currentURL.path && FileManager.default.fileExists(atPath: newURL.path) {
+                // Checamos si es un cambio ÚNICAMENTE de mayúsculas/minúsculas en el mismo archivo
+                let isCaseOnlyChange = (newURL.lastPathComponent.lowercased() == currentURL.lastPathComponent.lowercased()) && (newURL.path != currentURL.path)
+                
+                // Verificamos si ya existe un archivo con ese nombre y NO es sólo un cambio de case para el archivo actual
+                if !isCaseOnlyChange && newURL.path != currentURL.path && FileManager.default.fileExists(atPath: newURL.path) {
                     print("⚠️ Error: Ya existe un archivo con el nombre '\(safeName)' en esta carpeta.")
                     
                     if useComplexDuplicateAlert {
@@ -400,9 +404,17 @@ class WorkspaceViewModel: ObservableObject {
                     return
                 }
                 
-                try FileManager.default.moveItem(at: currentURL, to: newURL)
-                
-                print("✅ Archivo renombrado físicamente a: \(newURL.lastPathComponent)")
+                // Si es un cambio exclusivo de mayúsculas/minúsculas,
+                // debemos hacer un rename en 2 pasos porque FileManager a veces ignora cambios que sólo afectan capitalización.
+                if isCaseOnlyChange {
+                    let tempURL = folderURL.appendingPathComponent(UUID().uuidString).appendingPathExtension("pdf")
+                    try FileManager.default.moveItem(at: currentURL, to: tempURL)
+                    try FileManager.default.moveItem(at: tempURL, to: newURL)
+                    print("🔄 Archivo renombrado in-place (Case-Preserving) a: \(newURL.lastPathComponent)")
+                } else {
+                    try FileManager.default.moveItem(at: currentURL, to: newURL)
+                    print("✅ Archivo renombrado físicamente a: \(newURL.lastPathComponent)")
+                }
                 
                 // 5. Actualizar el Modelo
                 // Es crucial actualizar la URL en el modelo, si no, la próxima vez apuntará al archivo viejo.
