@@ -433,7 +433,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"$(SRCROOT)/Development Assets\"";
+				DEVELOPMENT_ASSET_PATHS = "Development\\ Assets /Users/ponciano.guevara@digitalfemsa.com/Downloads/projects/Nativo/iOS/Signum/Development\\ Assets";
 				DEVELOPMENT_TEAM = BR957994MU;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -494,7 +494,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"$(SRCROOT)/Development Assets\"";
+				DEVELOPMENT_ASSET_PATHS = "Development\\ Assets /Users/ponciano.guevara@digitalfemsa.com/Downloads/projects/Nativo/iOS/Signum/Development\\ Assets";
 				DEVELOPMENT_TEAM = BR957994MU;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -722,7 +722,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"$(SRCROOT)/Development Assets\"";
+				DEVELOPMENT_ASSET_PATHS = "Development\\ Assets /Users/ponciano.guevara@digitalfemsa.com/Downloads/projects/Nativo/iOS/Signum/Development\\ Assets";
 				DEVELOPMENT_TEAM = BR957994MU;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -891,7 +891,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"$(SRCROOT)/Development Assets\"";
+				DEVELOPMENT_ASSET_PATHS = "Development\\ Assets /Users/ponciano.guevara@digitalfemsa.com/Downloads/projects/Nativo/iOS/Signum/Development\\ Assets";
 				DEVELOPMENT_TEAM = BR957994MU;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
