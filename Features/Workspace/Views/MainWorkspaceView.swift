@@ -104,6 +104,22 @@ struct MainWorkspaceView: View {
         .alert(item: $viewModel.importAlert) { alertConfig in
             createAlert(from: alertConfig)
         }
+        .alert(item: $viewModel.duplicateAlert) { duplicateAlert in
+            if let confirmAction = duplicateAlert.confirmAction {
+                return Alert(
+                    title: Text(duplicateAlert.title),
+                    message: Text(duplicateAlert.message),
+                    primaryButton: .default(Text("Aceptar"), action: confirmAction),
+                    secondaryButton: .cancel(Text("Cancelar"))
+                )
+            } else {
+                return Alert(
+                    title: Text(duplicateAlert.title),
+                    message: Text(duplicateAlert.message),
+                    dismissButton: .default(Text("Aceptar"))
+                )
+            }
+        }
         .sheet(isPresented: $viewModel.showSubfolderPicker) {
             SubfolderPickerView(
                 parentFolderName: viewModel.parentFolderName,

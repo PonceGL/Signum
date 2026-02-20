@@ -10,6 +10,14 @@ import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
 
+struct DuplicateAlert: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+    let suggestedName: String?
+    let confirmAction: (() -> Void)?
+}
+
 @MainActor
 class WorkspaceViewModel: ObservableObject {
     // MARK: - Published Properties
@@ -24,6 +32,9 @@ class WorkspaceViewModel: ObservableObject {
     @Published var isImporting: Bool = false
     @Published var importErrorMessage: String?
     @Published var importAlert: ImportAlert?
+    @Published var duplicateAlert: DuplicateAlert?
+    
+    var useComplexDuplicateAlert: Bool = true
     
     // Navegación de subcarpetas
     @Published var showSubfolderPicker: Bool = false
@@ -353,10 +364,39 @@ class WorkspaceViewModel: ObservableObject {
             // IMPORTANTE: Usamos moveItem que renombra el archivo IN-PLACE sin crear copias
             // Esto preserva la firma digital del archivo original
             do {
-                // Verificamos si ya existe un archivo con ese nombre para no sobrescribirlo
-                if FileManager.default.fileExists(atPath: newURL.path) {
+                if newURL.path != currentURL.path && FileManager.default.fileExists(atPath: newURL.path) {
                     print("⚠️ Error: Ya existe un archivo con el nombre '\(safeName)' en esta carpeta.")
-                    // Aquí podrías lanzar una alerta al usuario, por ahora solo retornamos
+                    
+                    if useComplexDuplicateAlert {
+                        var counter = 2
+                        var incrementedName = ""
+                        var incrementedURL = newURL
+                        
+                        while FileManager.default.fileExists(atPath: incrementedURL.path) {
+                            incrementedName = "\(safeName) (\(counter))"
+                            incrementedURL = folderURL.appendingPathComponent(incrementedName).appendingPathExtension("pdf")
+                            counter += 1
+                        }
+                        
+                        let finalName = incrementedName
+                        self.duplicateAlert = DuplicateAlert(
+                            title: "Archivo Existente",
+                            message: "Ya existe un archivo con el nombre '\(safeName)' en esta carpeta. ¿Deseas guardarlo como '\(finalName)'?",
+                            suggestedName: finalName,
+                            confirmAction: { [weak self] in
+                                Task { @MainActor in
+                                    self?.finalizeAndRenameDocument(id: id, newName: finalName)
+                                }
+                            }
+                        )
+                    } else {
+                        self.duplicateAlert = DuplicateAlert(
+                            title: "Archivo Existente",
+                            message: "Ya existe un archivo con el nombre '\(safeName)' en esta carpeta.",
+                            suggestedName: nil,
+                            confirmAction: nil
+                        )
+                    }
                     return
                 }
                 
