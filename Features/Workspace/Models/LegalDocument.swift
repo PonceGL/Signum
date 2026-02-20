@@ -123,8 +123,8 @@ extension LegalDocument {
     init(url: URL) {
         self.id = UUID()
         self.originalURL = url
-        self.originalFileName = url.lastPathComponent
-        self.userEditedName = url.lastPathComponent
+        self.originalFileName = url.deletingPathExtension().lastPathComponent
+        self.userEditedName = url.deletingPathExtension().lastPathComponent
         self.status = .pending
     }
 }

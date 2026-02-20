@@ -25,7 +25,7 @@ struct FileRowView: View {
                 .foregroundColor(isInvalid ? .secondary : (isSelected ? .white : .accentColor))
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(document.originalFileName)
+                Text(document.userEditedName)
                     .font(.headline)
                     .lineLimit(1)
                     .strikethrough(isInvalid, color: .secondary)

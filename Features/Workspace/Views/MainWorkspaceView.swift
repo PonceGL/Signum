@@ -69,6 +69,7 @@ struct MainWorkspaceView: View {
                     if isInspectorPresented && viewModel.selectedDocument != nil
                     {
                         inspectorView
+                            .frame(minWidth: 300)
                     }
                 }
             #else
@@ -223,6 +224,7 @@ extension MainWorkspaceView {
                     document: document,
                     viewModel: viewModel
                 )
+                .id(document.id)
                 .padding()
             } else {
                 Text("Selecciona un archivo")

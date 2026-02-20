@@ -298,6 +298,7 @@ class WorkspaceViewModel: ObservableObject {
         ///   - id: ID del documento a procesar.
         ///   - newName: El nuevo nombre ingresado por el usuario (sin extensión).
         func finalizeAndRenameDocument(id: UUID, newName: String) {
+            print("finalizeAndRenameDocument id: \(id), newName: \(newName)")
             guard let index = documents.firstIndex(where: { $0.id == id }) else { return }
             
             let currentDoc = documents[index]
