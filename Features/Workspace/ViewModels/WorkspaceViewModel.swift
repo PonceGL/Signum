@@ -10,6 +10,14 @@ import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
 
+struct DuplicateAlert: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+    let suggestedName: String?
+    let confirmAction: (() -> Void)?
+}
+
 @MainActor
 class WorkspaceViewModel: ObservableObject {
     // MARK: - Published Properties
@@ -24,6 +32,9 @@ class WorkspaceViewModel: ObservableObject {
     @Published var isImporting: Bool = false
     @Published var importErrorMessage: String?
     @Published var importAlert: ImportAlert?
+    @Published var duplicateAlert: DuplicateAlert?
+    
+    var useComplexDuplicateAlert: Bool = true
     
     // Navegación de subcarpetas
     @Published var showSubfolderPicker: Bool = false
@@ -150,36 +161,23 @@ class WorkspaceViewModel: ObservableObject {
     private func processSuccessfulImports(_ successes: [ImportResult]) {
         var newDocumentsCount = 0
         
-        // Set temporal para rastrear qué orígenes (carpetas) ya intentamos abrir en este lote.
-        // Esto evita el spam de "❌ Error al obtener acceso seguro" repetido por cada archivo de la misma carpeta.
-        var processedSources: Set<URL> = []
-        
         // 1. Procesar Éxitos
         for item in successes {
                 
-                // LOGICA DE SEGURIDAD OPTIMIZADA
-                // Solo intentamos acceder si no lo hemos procesado en este lote Y no lo tenemos ya guardado
-                if !processedSources.contains(item.originalSource) && !securityAccessURLs.contains(item.originalSource) {
-                    
-                    // Marcamos como procesado para no reintentar en la siguiente vuelta del bucle
-                    processedSources.insert(item.originalSource)
-                    
-                    if item.originalSource.startAccessingSecurityScopedResource() {
-                        securityAccessURLs.insert(item.originalSource)
-                        print("🔐 Acceso seguro garantizado para: \(item.originalSource.lastPathComponent)")
-                    } else {
-                        // Si falla, es probable que sea un Drag&Drop que no requiere/soporta este scope explícito.
-                        // Lo dejamos pasar silenciosamente (o con un solo log informativo) en lugar de un error rojo.
-                        print("ℹ️ Nota: Acceso explícito no requerido para: \(item.originalSource.lastPathComponent)")
-                    }
-                }
+                // ESTRATEGIA: Registrar la carpeta con permisos activos
+                // Como ahora SOLO importamos carpetas (no archivos sueltos),
+                // el FileImportService ya llamó startAccessingSecurityScopedResource() 
+                // sobre la carpeta seleccionada (originalSource).
+                // Necesitamos mantener estos permisos activos para poder renombrar los archivos.
                 
-                // 1. Agregar documentos nuevos (válidos e inválidos)
-                #if os(macOS)
-                if item.url.startAccessingSecurityScopedResource() {
-                    securityAccessURLs.insert(item.url)
+                let folderWithPermissions = item.originalSource
+                
+                // Registrar la carpeta con permisos si no la tenemos ya
+                if !securityAccessURLs.contains(folderWithPermissions) {
+                    securityAccessURLs.insert(folderWithPermissions)
+                    print("📝 Registrada carpeta con permisos activos: \(folderWithPermissions.lastPathComponent)")
+                    print("   Path completo: \(folderWithPermissions.path)")
                 }
-                #endif
                 
                 // Evitar duplicados en la lista visual
                 if !documents.contains(where: { $0.originalURL == item.url }) {
@@ -311,6 +309,7 @@ class WorkspaceViewModel: ObservableObject {
         ///   - id: ID del documento a procesar.
         ///   - newName: El nuevo nombre ingresado por el usuario (sin extensión).
         func finalizeAndRenameDocument(id: UUID, newName: String) {
+            print("finalizeAndRenameDocument id: \(id), newName: \(newName)")
             guard let index = documents.firstIndex(where: { $0.id == id }) else { return }
             
             let currentDoc = documents[index]
@@ -331,35 +330,107 @@ class WorkspaceViewModel: ObservableObject {
             // Agregamos el nuevo nombre y aseguramos la extensión PDF
             let newURL = folderURL.appendingPathComponent(safeName).appendingPathExtension("pdf")
             
-            // 3. Renombrado Físico (FileManager)
+            // 3. CRÍTICO: Verificar y asegurar permisos de seguridad sobre la carpeta
+            // Los permisos ya deberían estar activos desde processSuccessfulImports
+            var hasPermissions = false
+            
+            // Buscar si tenemos permisos para esta carpeta o alguna carpeta padre
+            for securedURL in securityAccessURLs {
+                if folderURL == securedURL || folderURL.path.hasPrefix(securedURL.path) {
+                    hasPermissions = true
+                    print("✅ Permisos activos confirmados para: \(securedURL.lastPathComponent)")
+                    print("   Renombrando archivo en: \(folderURL.lastPathComponent)")
+                    break
+                }
+            }
+            
+            if !hasPermissions {
+                print("❌ ERROR: No hay permisos activos para la carpeta: \(folderURL.lastPathComponent)")
+                print("   URLs con permisos activos: \(securityAccessURLs.map { $0.lastPathComponent })")
+                print("   Intentando obtener permisos de emergencia...")
+                
+                // Último intento: solicitar permisos directamente
+                let emergencyAccess = folderURL.startAccessingSecurityScopedResource()
+                if emergencyAccess {
+                    print("✅ Permisos de emergencia concedidos")
+                    securityAccessURLs.insert(folderURL)
+                } else {
+                    print("❌ No se pudieron obtener permisos de emergencia")
+                    return
+                }
+            }
+            
+            // 4. Renombrado Físico (FileManager)
+            // IMPORTANTE: Usamos moveItem que renombra el archivo IN-PLACE sin crear copias
+            // Esto preserva la firma digital del archivo original
             do {
-                // Verificamos si ya existe un archivo con ese nombre para no sobrescribirlo
-                if FileManager.default.fileExists(atPath: newURL.path) {
+                // Checamos si es un cambio ÚNICAMENTE de mayúsculas/minúsculas en el mismo archivo
+                let isCaseOnlyChange = (newURL.lastPathComponent.lowercased() == currentURL.lastPathComponent.lowercased()) && (newURL.path != currentURL.path)
+                
+                // Verificamos si ya existe un archivo con ese nombre y NO es sólo un cambio de case para el archivo actual
+                if !isCaseOnlyChange && newURL.path != currentURL.path && FileManager.default.fileExists(atPath: newURL.path) {
                     print("⚠️ Error: Ya existe un archivo con el nombre '\(safeName)' en esta carpeta.")
-                    // Aquí podrías lanzar una alerta al usuario, por ahora solo retornamos
+                    
+                    if useComplexDuplicateAlert {
+                        var counter = 2
+                        var incrementedName = ""
+                        var incrementedURL = newURL
+                        
+                        while FileManager.default.fileExists(atPath: incrementedURL.path) {
+                            incrementedName = "\(safeName) (\(counter))"
+                            incrementedURL = folderURL.appendingPathComponent(incrementedName).appendingPathExtension("pdf")
+                            counter += 1
+                        }
+                        
+                        let finalName = incrementedName
+                        self.duplicateAlert = DuplicateAlert(
+                            title: "Archivo Existente",
+                            message: "Ya existe un archivo con el nombre '\(safeName)' en esta carpeta. ¿Deseas guardarlo como '\(finalName)'?",
+                            suggestedName: finalName,
+                            confirmAction: { [weak self] in
+                                Task { @MainActor in
+                                    self?.finalizeAndRenameDocument(id: id, newName: finalName)
+                                }
+                            }
+                        )
+                    } else {
+                        self.duplicateAlert = DuplicateAlert(
+                            title: "Archivo Existente",
+                            message: "Ya existe un archivo con el nombre '\(safeName)' en esta carpeta.",
+                            suggestedName: nil,
+                            confirmAction: nil
+                        )
+                    }
                     return
                 }
                 
-                try FileManager.default.moveItem(at: currentURL, to: newURL)
+                // Si es un cambio exclusivo de mayúsculas/minúsculas,
+                // debemos hacer un rename en 2 pasos porque FileManager a veces ignora cambios que sólo afectan capitalización.
+                if isCaseOnlyChange {
+                    let tempURL = folderURL.appendingPathComponent(UUID().uuidString).appendingPathExtension("pdf")
+                    try FileManager.default.moveItem(at: currentURL, to: tempURL)
+                    try FileManager.default.moveItem(at: tempURL, to: newURL)
+                    print("🔄 Archivo renombrado in-place (Case-Preserving) a: \(newURL.lastPathComponent)")
+                } else {
+                    try FileManager.default.moveItem(at: currentURL, to: newURL)
+                    print("✅ Archivo renombrado físicamente a: \(newURL.lastPathComponent)")
+                }
                 
-                print("✅ Archivo renombrado físicamente a: \(newURL.lastPathComponent)")
-                
-                // 4. Actualizar el Modelo
+                // 5. Actualizar el Modelo
                 // Es crucial actualizar la URL en el modelo, si no, la próxima vez apuntará al archivo viejo.
                 documents[index].userEditedName = safeName
                 documents[index].originalURL = newURL
                 documents[index].status = .verified
-                
-                // 5. Gestión de Permisos (Opcional pero recomendado)
-                // Si el Security Scope estaba atado a la URL específica del archivo (y no la carpeta),
-                // necesitaríamos actualizar `securityAccessURLs`.
-                // Como ahora trabajamos con la CARPETA padre, el permiso sigue vigente para el nuevo archivo.
                 
                 // 6. Siguiente documento
                 selectNextPendingDocument()
                 
             } catch {
                 print("❌ Error CRÍTICO al renombrar archivo: \(error.localizedDescription)")
+                print("   Archivo origen: \(currentURL.path)")
+                print("   Archivo destino: \(newURL.path)")
+                print("   Carpeta padre: \(folderURL.path)")
+                print("   Permisos en securityAccessURLs: \(securityAccessURLs.contains(folderURL))")
                 // Aquí es donde sabremos si tenemos permisos de escritura reales.
             }
         }

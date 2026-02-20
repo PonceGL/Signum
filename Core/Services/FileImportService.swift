@@ -59,6 +59,18 @@ protocol FileImporting {
     )
 }
 
+/// Servicio para procesar la importación de PDFs mediante el file importer nativo.
+///
+/// COMPORTAMIENTO POR PLATAFORMA:
+/// - **iPadOS 16+**: Soporta archivos sueltos Y carpetas (los permisos funcionan correctamente)
+/// - **macOS 13+**: Solo soporta carpetas (los permisos de archivos sueltos no son confiables)
+///
+/// GESTIÓN DE PERMISOS:
+/// - Solicita permisos de seguridad (security-scoped resources) para las URLs importadas
+/// - Para archivos sueltos (iPadOS), intenta obtener permisos de la carpeta padre
+/// - NO libera los permisos al finalizar, ya que el WorkspaceViewModel los necesita activos
+///   para poder renombrar los archivos originales (requisito crítico de la aplicación)
+/// - El WorkspaceViewModel es responsable de liberar los permisos cuando sea necesario
 actor FileImportService: FileImporting {
 
     static let shared = FileImportService()
@@ -71,9 +83,15 @@ actor FileImportService: FileImporting {
 
         for url in urls {
             // 1. Gestionar Seguridad (Start Access)
+            // IMPORTANTE: NO liberamos el recurso aquí con defer porque el ViewModel
+            // necesita mantener los permisos activos para poder renombrar archivos.
+            // El ViewModel será responsable de liberar los permisos cuando sea necesario.
             let accessing = url.startAccessingSecurityScopedResource()
-            defer {
-                if accessing { url.stopAccessingSecurityScopedResource() }
+            
+            if !accessing {
+                print("⚠️ No se pudo obtener acceso de seguridad para: \(url.lastPathComponent)")
+            } else {
+                print("✅ Acceso de seguridad concedido para: \(url.lastPathComponent)")
             }
 
             // 2. Verificar si es Directorio o Archivo
@@ -89,6 +107,7 @@ actor FileImportService: FileImporting {
 
             if isDirectory {
                 // LOGICA DE CARPETAS (Nivel 1)
+                print("📁 Procesando carpeta: \(url.lastPathComponent)")
                 let folderAnalysis = await analyzeDirectory(url)
                 
                 // Separar PDFs válidos de zombies
@@ -119,19 +138,35 @@ actor FileImportService: FileImporting {
                 }
             } else {
                 // LOGICA DE ARCHIVO INDIVIDUAL
+                print("📄 Procesando archivo individual: \(url.lastPathComponent)")
+                
                 if let type = resourceValues.contentType,
                     type.conforms(to: .pdf)
                 {
+                    // CRÍTICO: Para archivos sueltos, necesitamos permisos de la carpeta padre
+                    // para poder renombrarlos. Intentamos obtener acceso a la carpeta padre.
+                    let parentFolder = url.deletingLastPathComponent()
+                    let parentAccessing = parentFolder.startAccessingSecurityScopedResource()
+                    
+                    if parentAccessing {
+                        print("✅ Permisos de carpeta padre obtenidos para: \(parentFolder.lastPathComponent)")
+                    } else {
+                        print("⚠️ No se pudieron obtener permisos de carpeta padre para: \(parentFolder.lastPathComponent)")
+                        print("   Esto puede causar problemas al renombrar el archivo")
+                    }
+                    
                     // Validar que el archivo no sea zombie (0 bytes)
                     if let fileSize = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
                        fileSize > 0 {
+                        // Usamos parentFolder como originalSource para indicar que necesitamos
+                        // mantener permisos activos en la carpeta padre
                         successes.append(
-                            ImportResult(url: url, originalSource: url, isValid: true)
+                            ImportResult(url: url, originalSource: parentFolder, isValid: true)
                         )
                     } else {
                         // Caso D: Archivo zombie (0 bytes) - agregarlo como inválido para mostrarlo en la UI
                         successes.append(
-                            ImportResult(url: url, originalSource: url, isValid: false, invalidReason: .emptyFile)
+                            ImportResult(url: url, originalSource: parentFolder, isValid: false, invalidReason: .emptyFile)
                         )
                         print("⚠️ Archivo zombie individual detectado: \(url.lastPathComponent)")
                     }
@@ -157,14 +192,9 @@ actor FileImportService: FileImporting {
         let fileManager = FileManager.default
         let keys: [URLResourceKey] = [.contentTypeKey, .isDirectoryKey, .fileSizeKey]
         
-        // Intentar obtener acceso de seguridad si es necesario
-        let needsAccess = folderURL.startAccessingSecurityScopedResource()
-        defer {
-            if needsAccess {
-                folderURL.stopAccessingSecurityScopedResource()
-            }
-        }
-
+        // IMPORTANTE: Los permisos ya fueron solicitados en processImport()
+        // No necesitamos volver a solicitarlos ni liberarlos aquí
+        
         guard
             let items = try? fileManager.contentsOfDirectory(
                 at: folderURL,

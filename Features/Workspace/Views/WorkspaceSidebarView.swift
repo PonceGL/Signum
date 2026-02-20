@@ -20,6 +20,7 @@ struct WorkspaceSidebarView: View {
                     document: doc,
                     isSelected: viewModel.selectedDocumentID == doc.id
                 )
+                .id("\(doc.id)-\(doc.userEditedName)")
                 .tag(doc.id)
                 .contextMenu {
                     Button {

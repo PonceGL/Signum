@@ -74,6 +74,9 @@ struct DocumentInspectorView: View {
             Spacer()
 
             SignumButton(title: "Confirmar") {
+                print("===================================================================")
+                print("DocumentInspectorView id: \(document.id), editedName: \(editedName)")
+                print("===================================================================")
                 viewModel.finalizeAndRenameDocument(
                     id: document.id,
                     newName: editedName
@@ -84,6 +87,9 @@ struct DocumentInspectorView: View {
         }
         .onAppear {
             editedName = document.userEditedName
+        }
+        .onSignumChange(of: document.userEditedName) { _, newValue in
+            editedName = newValue
         }
         .onSignumChange(of: document.id) { _, newValue in
             editedName = document.userEditedName

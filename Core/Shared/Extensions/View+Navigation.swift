@@ -14,13 +14,32 @@ struct WorkspaceBehaviorModifier: ViewModifier {
     @Binding var isFileImporterPresented: Bool
 
     let onImport: (Result<[URL], Error>) -> Void
+    
+    // Configuración diferenciada por plataforma
+    // iPadOS: Permite archivos sueltos Y carpetas (los permisos funcionan correctamente)
+    // macOS: Solo carpetas (los permisos de archivos sueltos no funcionan de manera confiable)
+    private var allowedContentTypes: [UTType] {
+        #if os(macOS)
+        return [.folder]
+        #else
+        return [.pdf, .folder]
+        #endif
+    }
+    
+    private var allowsMultipleSelection: Bool {
+        #if os(macOS)
+        return false  // Solo una carpeta a la vez
+        #else
+        return true   // Múltiples archivos o carpetas
+        #endif
+    }
 
     func body(content: Content) -> some View {
         content
             .fileImporter(
                 isPresented: $isFileImporterPresented,
-                allowedContentTypes: [.pdf, .folder],
-                allowsMultipleSelection: true,
+                allowedContentTypes: allowedContentTypes,
+                allowsMultipleSelection: allowsMultipleSelection,
                 onCompletion: onImport
             )
             .onSignumChange(of: viewModel.documents.count) { _, newValue in
@@ -33,7 +52,6 @@ struct WorkspaceBehaviorModifier: ViewModifier {
                 .spring(response: 0.4, dampingFraction: 0.8),
                 value: columnVisibility
             )
-            .withDocumentDropSupport(viewModel: viewModel)
     }
 
     private func updateVisibility(isEmpty: Bool) {
